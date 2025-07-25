@@ -1,0 +1,218 @@
+# File: CLAUDE.md
+
+# Path: /home/herb/Desktop/AndyLibrary/CLAUDE.md
+
+# Standard: AIDEV-PascalCase-2.1
+
+# Created: 2025-07-23
+
+# Last Modified: 2025-07-24 01:24PM
+
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+**AndyLibrary** (AndyGoogle) is an **educational mission-focused** digital library management system designed to provide equitable access to educational content for students in developing regions. Built with FastAPI and optimized for cost-conscious deployment.
+
+### Educational Mission
+
+**Primary Goal**: Get education into the hands of people who can least afford it
+
+**Core Values**:
+- **Cost Protection**: Students protected from surprise data charges via version control
+- **Offline First**: Works without internet after initial download
+- **Budget Device Friendly**: Optimized for $50 tablets with limited resources
+- **Simple Technology**: Avoid over-engineering that doesn't serve students
+
+### Architecture (Simplified for Educational Mission)
+
+- **FastAPI Local Server**: Native app with web UI (`StartAndyGoogle.py`)
+- **Direct SQLite Database**: Single 10.2MB file with embedded thumbnails (`MyLibrary.db`)
+- **Native SQLite Caching**: Leverage built-in memory management (no custom cache layer)
+- **Version Control System**: 127-byte checks protect students from unnecessary downloads
+- **Offline Operation**: Complete functionality without internet dependency
+
+### CRITICAL ARCHITECTURAL DECISIONS
+
+#### ✅ DO (Proven Effective)
+- **Use main database directly** - SQLite handles caching automatically
+- **Embed thumbnails as BLOBs** - No separate image files needed
+- **Native app deployment** - Better performance than browser-based solutions
+- **Full database redownload** - Simple version control protects students
+- **Student choice** - Never force expensive updates
+
+#### ❌ DON'T (Over-Engineering Traps)
+- **Create "cache" databases** - SQLite already caches in memory efficiently
+- **Browser-based deployment** - Memory limits harm educational access
+- **Complex packet update systems** - Adds cost without student benefit
+- **Separate thumbnail files** - Increases complexity and failure points
+- **Real-time Google Drive dependency** - Students need offline access
+
+### Development Philosophy
+
+#### Technical Reality Checks
+- **Challenge assumptions** - Question "modern" solutions that don't serve the educational mission
+- **Unix wisdom applies** - Simple tools, well combined, often outperform complex frameworks
+- **Current tech validation** - Verify recommendations match 2025 reality, not outdated blog posts
+- **Performance over abstraction** - Choose solutions that work efficiently on student hardware
+- **Mission-driven decisions** - Every technical choice must serve educational access
+
+#### Learning Partnership
+- **Stay curious** - Question complexity when simpler solutions exist
+- **Keep it honest** - Call out over-engineering before it becomes technical debt
+- **Prevent foot-shooting** - Stop reinventing solved problems or ignoring efficient solutions
+- **Current relevance** - Ensure architecture matches modern capabilities (e.g., SQLite auto-caching)
+
+## Development Commands
+
+### Starting the Application
+
+```bash
+# Primary method - with smart port detection
+python StartAndyGoogle.py
+
+# Force specific port (useful if 8000 is busy)
+python StartAndyGoogle.py --port 8080
+
+# Allow external connections (network access)
+python StartAndyGoogle.py --host 0.0.0.0
+
+# Environment check only
+python StartAndyGoogle.py --check
+```
+
+### Testing
+
+```bash
+# Run all tests
+python run_tests.py
+
+# Run specific test types
+python run_tests.py --type unit
+python run_tests.py --type integration
+python run_tests.py --type api
+python run_tests.py --type fast  # excludes slow tests
+
+# Run with coverage
+python run_tests.py --coverage
+
+# Direct pytest usage
+pytest Tests/ -v
+pytest Tests/ -m "unit"  # unit tests only
+pytest Tests/ -m "not slow"  # fast tests only
+```
+
+### Environment Setup
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Create virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+pip install -r requirements.txt
+```
+
+## Key Components
+
+### Core Directories
+
+- `Source/API/` - FastAPI endpoints and Google Drive integration
+- `Source/Core/` - DriveManager for cloud operations
+- `Source/Utils/` - Utility functions and helpers
+- `Config/` - Configuration files (andygoogle_config.json, Google credentials)
+- `Data/Local/` - SQLite database and local file cache
+- `WebPages/` - Frontend HTML/CSS/JavaScript
+- `Scripts/` - Development and utility scripts
+- `Tests/` - Test directory (currently empty, tests in Source/Tests/)
+
+### Configuration
+
+- **Main Config**: `Config/andygoogle_config.json`
+- **Google Credentials**: `Config/google_credentials.json` (required for Drive sync)
+- **Port Range**: Configurable fallback ports [8000, 8010, 8080, 8090, 3000, 5000, 9000]
+
+### Smart Port Detection
+
+The application automatically detects and resolves port conflicts:
+
+- Starts with port 8000 (or user-specified)
+- Identifies common conflicts (HP printer service on 8000, Tomcat on 8080)
+- Falls back to configured port range
+- Reports which service is using busy ports
+
+### Dependencies
+
+Key Python packages:
+
+- `fastapi` - Web framework
+- `uvicorn` - ASGI server
+- `google-auth`, `google-auth-oauthlib`, `google-api-python-client` - Google Drive integration
+- `pydantic` - Data validation
+- `sqlite3` - Database (built-in)
+- `aiofiles` - Async file operations
+
+## Development Patterns
+
+### File Headers
+
+All files follow AIDEV-PascalCase-2.1 standard with proper headers including file path, creation date, and modification timestamps.
+
+### Error Handling
+
+- Environment validation before startup
+- Graceful port conflict resolution
+- Database connection fallbacks
+- Google API error handling
+
+### Testing Strategy
+
+- Basic API functionality tests in `Source/Tests/`
+- Port detection validation
+- Database connectivity checks
+- Environment validation
+
+## Common Issues & Solutions
+
+### Port 8000 Busy
+
+Usually caused by HP printer services. The application automatically finds alternative ports and reports the conflict source.
+
+### Missing Google Credentials
+
+Place `google_credentials.json` in `Config/` directory. The startup script validates this requirement.
+
+### Database Issues
+
+Local SQLite database in `Data/Local/cached_library.db`. Check database connectivity with test endpoint `/test`.
+
+### Dependencies
+
+Install all requirements from `requirements.txt`. The startup script validates critical packages are available.
+
+## API Endpoints
+
+- `/` - Main library interface
+- `/docs` - FastAPI auto-generated API documentation
+- `/test` - Database connectivity test (in test files)
+
+Access at: `http://127.0.0.1:{port}` where port is auto-detected (usually 8000).
+
+## Version Control Strategy
+
+### Student-Centric Update Philosophy
+- **Student choice over forced updates** - App must work gracefully with outdated databases
+- **Cost transparency** - Clear pricing for all update options ($1.02 for full 10.2MB download)
+- **Graceful degradation** - Handle missing/deprecated books without crashes
+- **Update frequency options** - Monthly ($12.24/year), Quarterly ($4.08/year), Yearly ($1.02/year), or Manual
+
+### Implementation Approach
+1. **Phase 1**: Simple full database redownload with student choice
+2. **Phase 2**: Enhanced user control and update scheduling
+3. **Phase 3**: Advanced packet system only if students demand it
+
+### Key Principle
+**Technical complexity should serve educational mission, not the reverse.**
