@@ -246,6 +246,8 @@ db.sqlite3-journal
 
 # Configuration and secrets
 .env
+.env.*
+!.env.template
 .env.local
 .env.*.local
 config.json
