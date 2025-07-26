@@ -1,0 +1,32 @@
+name: Simple EXE Builder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Create simple app
+      run: |
+        echo "print('Hello from AndyLibrary Windows EXE!')" > simple_app.py
+        echo "input('Press Enter to exit...')" >> simple_app.py
+        
+    - name: Install PyInstaller
+      run: pip install pyinstaller
+      
+    - name: Build EXE
+      run: pyinstaller --onefile simple_app.py
+      
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-exe
+        path: dist/simple_app.exe
