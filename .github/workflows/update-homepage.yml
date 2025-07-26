@@ -1,0 +1,87 @@
+# File: update-homepage.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/update-homepage.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-26
+# Last Modified: 2025-07-26 06:45PM
+
+name: Update Homepage
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+  workflow_run:
+    workflows: ["Simple Windows EXE Build"]
+    types: [ completed ]
+
+jobs:
+  update-homepage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Get latest release info
+      id: release
+      run: |
+        LATEST_RELEASE=$(curl -s "https://api.github.com/repos/CallMeChewy/AndyLibrary/releases/latest" | jq -r '.tag_name // "v1.0.0"')
+        RELEASE_DATE=$(curl -s "https://api.github.com/repos/CallMeChewy/AndyLibrary/releases/latest" | jq -r '.published_at // "2025-01-01T00:00:00Z"')
+        echo "version=${LATEST_RELEASE}" >> $GITHUB_OUTPUT
+        echo "date=${RELEASE_DATE}" >> $GITHUB_OUTPUT
+        
+    - name: Update homepage with latest info
+      run: |
+        VERSION="${{ steps.release.outputs.version }}"
+        DATE="${{ steps.release.outputs.date }}"
+        COMMIT_SHA="${{ github.sha }}"
+        
+        # Update the homepage with dynamic content
+        sed -i "s/Last updated: .*/Last updated: $(date) - Version ${VERSION}/" index.html
+        sed -i "s/latest\/download/releases\/download\/${VERSION}/" index.html
+        
+        # Add build status badges
+        cat >> index.html << EOF
+        
+        <!-- Auto-generated status section -->
+        <div class="download-section" style="text-align: center;">
+            <h3>🚀 Build Status</h3>
+            <img src="https://github.com/CallMeChewy/AndyLibrary/workflows/Simple%20Windows%20EXE%20Build/badge.svg" alt="Windows Build">
+            <img src="https://github.com/CallMeChewy/AndyLibrary/workflows/AndyLibrary%20CI%2FCD%20Pipeline/badge.svg" alt="CI/CD">
+            <img src="https://github.com/CallMeChewy/AndyLibrary/workflows/Security%20%26%20Code%20Quality/badge.svg" alt="Security">
+            <p><strong>Latest Version:</strong> ${VERSION} • <strong>Updated:</strong> $(date +"%Y-%m-%d")</p>
+        </div>
+        EOF
+        
+    - name: Commit updated homepage
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add index.html
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🚀 Auto-update homepage with latest release info"
+          git push
+        fi
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+      
+    - name: Build with Jekyll
+      uses: actions/jekyll-build-pages@v1
+      with:
+        source: ./
+        destination: ./_site
+        
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v2
+      
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2
