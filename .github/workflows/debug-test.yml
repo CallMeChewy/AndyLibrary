@@ -1,0 +1,28 @@
+name: Debug Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: List files
+      run: |
+        echo "Repository contents:"
+        dir
+        
+    - name: Check Python
+      run: |
+        python --version
+        
+    - name: Check StartAndyGoogle.py
+      run: |
+        if exist StartAndyGoogle.py (echo "StartAndyGoogle.py found") else (echo "StartAndyGoogle.py NOT found")
+        
+    - name: Success
+      run: echo "Debug workflow completed successfully"
