@@ -1,0 +1,324 @@
+# File: ci-cd.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/ci-cd.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-26
+# Last Modified: 2025-07-26 06:05AM
+
+name: AndyLibrary CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  PROJECT_NAME: AndyLibrary
+
+jobs:
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Lint with flake8
+      run: |
+        flake8 Source/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 Source/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
+    - name: Check code formatting with black
+      run: black --check Source/ --diff --color
+      
+    - name: Check import sorting with isort
+      run: isort Source/ --check-only --diff --color
+
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+        
+    - name: Check for known security vulnerabilities
+      run: safety check -r requirements.txt
+      
+    - name: Run bandit security linter
+      run: bandit -r Source/ -f json -o bandit-report.json || true
+      
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-report
+        path: bandit-report.json
+        retention-days: 30
+
+  test-matrix:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio pytest-cov
+        pip install -r requirements.txt
+        
+    - name: Create test environment
+      run: |
+        mkdir -p Data/Local
+        mkdir -p Config
+        touch Config/andygoogle_config.json
+        
+    - name: Run automated test suite
+      run: |
+        cd Tests
+        python run_automated_tests.py
+        
+    - name: Run pytest with coverage
+      run: |
+        pytest Tests/ --cov=Source --cov-report=xml --cov-report=html -v
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: |
+          Tests/test_results.json
+          htmlcov/
+        retention-days: 30
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  functional-tests:
+    name: Functional & Integration Tests
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-scan]
+    
+    services:
+      dummy-email:
+        image: mailhog/mailhog:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+          
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Set up test database
+      run: |
+        mkdir -p Data/Local Data/Databases Config
+        cp Data/Databases/MyLibrary.db Data/Local/cached_library.db || echo "Database will be created"
+        
+    - name: Create test configuration
+      run: |
+        cat > Config/andygoogle_config.json << EOF
+        {
+          "mode": "local",
+          "database_path": "Data/Local/cached_library.db",
+          "port_range": [8100, 8110, 8120, 8130],
+          "email_config": {
+            "smtp_server": "localhost",
+            "smtp_port": 1025,
+            "use_tls": false,
+            "test_mode": true
+          }
+        }
+        EOF
+        
+    - name: Run startup validation
+      run: python StartAndyGoogle.py --check
+      
+    - name: Run functional tests
+      run: |
+        cd Tests
+        python -m pytest test_integration_complete_workflow.py -v
+        python -m pytest test_multi_user_scenarios.py -v
+        
+    - name: Test educational mission compliance
+      run: |
+        cd Tests  
+        python TestEducationalMission.py
+
+  build-and-package:
+    name: Build Application Package
+    runs-on: ${{ matrix.os }}
+    needs: [test-matrix, functional-tests]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Create distribution package
+      run: |
+        mkdir -p dist
+        python -c "
+        import shutil
+        import os
+        
+        # Create deployment package
+        os.makedirs('dist/AndyLibrary', exist_ok=True)
+        
+        # Copy core files
+        shutil.copytree('Source', 'dist/AndyLibrary/Source')
+        shutil.copytree('Config', 'dist/AndyLibrary/Config')
+        shutil.copytree('WebPages', 'dist/AndyLibrary/WebPages')
+        shutil.copytree('Data', 'dist/AndyLibrary/Data')
+        shutil.copy('StartAndyGoogle.py', 'dist/AndyLibrary/')
+        shutil.copy('requirements.txt', 'dist/AndyLibrary/')
+        shutil.copy('README.md', 'dist/AndyLibrary/')
+        shutil.copy('CLAUDE.md', 'dist/AndyLibrary/')
+        "
+        
+    - name: Create archive
+      shell: bash
+      run: |
+        cd dist
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          7z a AndyLibrary-${{ runner.os }}.zip AndyLibrary/
+        else
+          tar -czf AndyLibrary-${{ runner.os }}.tar.gz AndyLibrary/
+        fi
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: AndyLibrary-${{ runner.os }}
+        path: dist/AndyLibrary-${{ runner.os }}.*
+        retention-days: 90
+
+  deployment-ready:
+    name: Deployment Validation
+    runs-on: ubuntu-latest
+    needs: [build-and-package]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: AndyLibrary-Linux
+        path: deployment/
+        
+    - name: Validate deployment package
+      run: |
+        cd deployment
+        tar -xzf AndyLibrary-Linux.tar.gz
+        cd AndyLibrary
+        
+        # Verify all required files exist
+        test -f StartAndyGoogle.py
+        test -f requirements.txt
+        test -d Source/
+        test -d Config/
+        test -d WebPages/
+        test -d Data/
+        
+        echo "✅ Deployment package validation passed"
+        
+    - name: Test deployment startup
+      run: |
+        cd deployment/AndyLibrary
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        python StartAndyGoogle.py --check
+        
+        echo "✅ Deployment startup validation passed"
+
+  notify-completion:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [deployment-ready]
+    if: always()
+    
+    steps:
+    - name: Report success
+      if: needs.deployment-ready.result == 'success'
+      run: |
+        echo "🎉 AndyLibrary CI/CD Pipeline completed successfully!"
+        echo "📦 Build artifacts are ready for deployment"
+        echo "🚀 Educational mission continues with confidence!"
+        
+    - name: Report failure
+      if: needs.deployment-ready.result != 'success'
+      run: |
+        echo "❌ AndyLibrary CI/CD Pipeline encountered issues"
+        echo "🔍 Check previous job logs for details"
+        echo "📚 Educational mission requires attention"

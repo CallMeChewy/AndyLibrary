@@ -1,0 +1,433 @@
+# File: test-comprehensive.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/test-comprehensive.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-26
+# Last Modified: 2025-07-26 06:06AM
+
+name: Comprehensive Test Suite
+
+on:
+  push:
+    branches: [ main, master, develop, 'feature/*', 'fix/*' ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      test_category:
+        description: 'Test category to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - isolation
+          - auth
+          - educational
+
+env:
+  PYTHON_VERSION: '3.11'
+  COVERAGE_THRESHOLD: 85
+
+jobs:
+  test-discovery:
+    name: Test Discovery & Planning
+    runs-on: ubuntu-latest
+    outputs:
+      test-matrix: ${{ steps.discover.outputs.test-matrix }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Discover test modules
+      id: discover
+      run: |
+        cd Tests
+        TEST_MODULES=$(find . -name "test_*.py" -not -path "./__pycache__/*" | sort | jq -R -s -c 'split("\n")[:-1]')
+        echo "test-matrix=${TEST_MODULES}" >> $GITHUB_OUTPUT
+        echo "Discovered test modules:"
+        echo "${TEST_MODULES}" | jq -r '.[]'
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ${{ matrix.os }}
+    needs: test-discovery
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-timeout
+        pip install -r requirements.txt
+        
+    - name: Prepare test environment
+      run: |
+        mkdir -p Data/Local Data/Databases Config Tests/temp
+        echo '{"mode": "test", "database_path": "Tests/temp/test.db"}' > Config/andygoogle_config.json
+        
+    - name: Run unit tests with coverage
+      timeout-minutes: 15
+      run: |
+        cd Tests
+        python -m pytest \
+          test_database_manager_isolated.py \
+          test_user_environment_simple.py \
+          test_authentication_system.py \
+          --cov=../Source \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term \
+          --cov-fail-under=${{ env.COVERAGE_THRESHOLD }} \
+          --timeout=300 \
+          -v --tb=short
+          
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        file: Tests/coverage.xml
+        flags: unit-tests
+        name: unit-tests-${{ matrix.os }}-py${{ matrix.python-version }}
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test-discovery
+    
+    services:
+      test-email:
+        image: mailhog/mailhog:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+          
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio pytest-timeout requests-mock
+        pip install -r requirements.txt
+        
+    - name: Set up integration test environment
+      run: |
+        mkdir -p Data/Local Data/Databases Config
+        
+        # Create test database if available
+        if [ -f "Data/Databases/MyLibrary.db" ]; then
+          cp Data/Databases/MyLibrary.db Data/Local/cached_library.db
+        fi
+        
+        # Create integration test config
+        cat > Config/andygoogle_config.json << EOF
+        {
+          "mode": "local",
+          "database_path": "Data/Local/cached_library.db",
+          "port_range": [8100, 8110, 8120, 8130],
+          "email_config": {
+            "smtp_server": "localhost",
+            "smtp_port": 1025,
+            "use_tls": false,
+            "test_mode": true
+          },
+          "drive_config": {
+            "test_mode": true,
+            "mock_responses": true
+          }
+        }
+        EOF
+        
+    - name: Run integration tests
+      timeout-minutes: 20
+      run: |
+        cd Tests
+        python -m pytest \
+          test_integration_complete_workflow.py \
+          test_multi_user_scenarios.py \
+          test_email_service_integration.py \
+          --timeout=600 \
+          -v --tb=short \
+          --capture=no
+          
+    - name: Test real-time user journey
+      timeout-minutes: 10
+      run: |
+        python test_real_time_journey.py
+
+  isolation-tests:
+    name: User Environment Isolation Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio
+        pip install -r requirements.txt
+        
+    - name: Run isolation tests
+      timeout-minutes: 15
+      run: |
+        cd Tests
+        python -m pytest \
+          test_user_environment_isolation.py \
+          --timeout=300 \
+          -v --tb=short
+          
+    - name: Test multi-user scenarios
+      timeout-minutes: 10
+      run: |
+        cd Scripts
+        python CreateUserTestEnvironment.py --validate
+
+  educational-mission-tests:
+    name: Educational Mission Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Test educational mission compliance
+      timeout-minutes: 10
+      run: |
+        cd Tests
+        python TestEducationalMission.py
+        
+    - name: Validate righteous architecture
+      timeout-minutes: 5
+      run: |
+        cd Scripts
+        python ValidateRighteousArchitecture.py
+
+  automated-test-runner:
+    name: Full Automated Test Suite
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run comprehensive automated tests
+      timeout-minutes: 25
+      run: |
+        cd Tests
+        python run_automated_tests.py
+        
+    - name: Upload comprehensive test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: comprehensive-test-results
+        path: |
+          Tests/test_results.json
+          Tests/test_reports/
+        retention-days: 30
+
+  performance-tests:
+    name: Performance & Load Tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'performance')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install locust memory-profiler line-profiler
+        pip install -r requirements.txt
+        
+    - name: Create performance test environment
+      run: |
+        mkdir -p Data/Local Config
+        echo '{"mode": "test", "database_path": "Data/Local/test.db"}' > Config/andygoogle_config.json
+        
+    - name: Run startup performance test
+      timeout-minutes: 5
+      run: |
+        python -c "
+        import time
+        import sys
+        sys.path.insert(0, 'Source')
+        
+        start_time = time.time()
+        import StartAndyGoogle
+        startup_time = time.time() - start_time
+        
+        print(f'Startup time: {startup_time:.2f} seconds')
+        if startup_time > 10:
+            print('⚠️ Startup time exceeds 10 seconds')
+            sys.exit(1)
+        else:
+            print('✅ Startup performance acceptable')
+        "
+        
+    - name: Memory usage test
+      timeout-minutes: 3
+      run: |
+        python -c "
+        import psutil
+        import sys
+        import os
+        sys.path.insert(0, 'Source')
+        
+        process = psutil.Process(os.getpid())
+        before_memory = process.memory_info().rss / 1024 / 1024  # MB
+        
+        # Import core modules
+        from Core.DatabaseManager import DatabaseManager
+        from Core.UserSetupManager import UserSetupManager
+        
+        after_memory = process.memory_info().rss / 1024 / 1024  # MB
+        memory_increase = after_memory - before_memory
+        
+        print(f'Memory before: {before_memory:.1f} MB')
+        print(f'Memory after: {after_memory:.1f} MB')
+        print(f'Memory increase: {memory_increase:.1f} MB')
+        
+        if memory_increase > 100:  # More than 100MB
+            print('⚠️ Memory usage high for core modules')
+        else:
+            print('✅ Memory usage acceptable')
+        "
+
+  test-summary:
+    name: Test Summary & Reporting
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, isolation-tests, educational-mission-tests, automated-test-runner]
+    if: always()
+    
+    steps:
+    - name: Download all test artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: test-artifacts/
+        
+    - name: Generate test summary
+      run: |
+        echo "# 🧪 AndyLibrary Test Summary" > test-summary.md
+        echo "" >> test-summary.md
+        echo "## Test Results Overview" >> test-summary.md
+        echo "" >> test-summary.md
+        
+        # Check job results
+        if [[ "${{ needs.unit-tests.result }}" == "success" ]]; then
+          echo "✅ Unit Tests: PASSED" >> test-summary.md
+        else
+          echo "❌ Unit Tests: FAILED" >> test-summary.md
+        fi
+        
+        if [[ "${{ needs.integration-tests.result }}" == "success" ]]; then
+          echo "✅ Integration Tests: PASSED" >> test-summary.md
+        else
+          echo "❌ Integration Tests: FAILED" >> test-summary.md
+        fi
+        
+        if [[ "${{ needs.isolation-tests.result }}" == "success" ]]; then
+          echo "✅ Isolation Tests: PASSED" >> test-summary.md
+        else
+          echo "❌ Isolation Tests: FAILED" >> test-summary.md
+        fi
+        
+        if [[ "${{ needs.educational-mission-tests.result }}" == "success" ]]; then
+          echo "✅ Educational Mission Tests: PASSED" >> test-summary.md
+        else
+          echo "❌ Educational Mission Tests: FAILED" >> test-summary.md
+        fi
+        
+        if [[ "${{ needs.automated-test-runner.result }}" == "success" ]]; then
+          echo "✅ Automated Test Runner: PASSED" >> test-summary.md
+        else
+          echo "❌ Automated Test Runner: FAILED" >> test-summary.md
+        fi
+        
+        echo "" >> test-summary.md
+        echo "## Educational Mission Status" >> test-summary.md
+        echo "" >> test-summary.md
+        
+        # Overall assessment
+        if [[ "${{ needs.unit-tests.result }}" == "success" && "${{ needs.integration-tests.result }}" == "success" && "${{ needs.educational-mission-tests.result }}" == "success" ]]; then
+          echo "🎉 **All critical tests passed!**" >> test-summary.md
+          echo "" >> test-summary.md
+          echo "AndyLibrary is ready to serve its educational mission:" >> test-summary.md
+          echo "- 📚 Getting education into the hands of people who can least afford it" >> test-summary.md
+          echo "- 💰 Cost protection for students" >> test-summary.md
+          echo "- 📱 Budget device optimization" >> test-summary.md
+          echo "- 🌐 Offline-first operation" >> test-summary.md
+        else
+          echo "⚠️ **Some tests failed - educational mission at risk**" >> test-summary.md
+          echo "" >> test-summary.md
+          echo "Please review failed tests to ensure students can access education safely." >> test-summary.md
+        fi
+        
+        cat test-summary.md
+        
+    - name: Upload test summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-summary
+        path: test-summary.md
+        retention-days: 90
