@@ -1,0 +1,206 @@
+# File: update-bowersworld.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/update-bowersworld.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-26
+# Last Modified: 2025-07-26 06:50PM
+
+name: Update BowersWorld.com
+
+on:
+  release:
+    types: [ published ]
+  workflow_run:
+    workflows: ["Simple Windows EXE Build"]
+    types: [ completed ]
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Force update BowersWorld.com'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  notify-bowersworld:
+    name: Update BowersWorld.com Downloads
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Get latest AndyLibrary info
+      id: andy_info
+      run: |
+        # Get latest release info
+        LATEST_RELEASE=$(curl -s "https://api.github.com/repos/CallMeChewy/AndyLibrary/releases/latest" | jq -r '.tag_name // "latest"')
+        RELEASE_DATE=$(date +"%Y-%m-%d")
+        
+        # Get latest Windows build artifact URL
+        LATEST_RUN=$(curl -s "https://api.github.com/repos/CallMeChewy/AndyLibrary/actions/workflows/simple-windows-build.yml/runs?status=success&per_page=1" | jq -r '.workflow_runs[0].id')
+        ARTIFACTS_URL="https://github.com/CallMeChewy/AndyLibrary/actions/runs/${LATEST_RUN}"
+        
+        echo "version=${LATEST_RELEASE}" >> $GITHUB_OUTPUT
+        echo "date=${RELEASE_DATE}" >> $GITHUB_OUTPUT
+        echo "artifacts_url=${ARTIFACTS_URL}" >> $GITHUB_OUTPUT
+        echo "download_url=https://github.com/CallMeChewy/AndyLibrary/releases/latest" >> $GITHUB_OUTPUT
+        
+    - name: Create update payload for BowersWorld
+      id: payload
+      run: |
+        cat > update_payload.json << EOF
+        {
+          "andylibrary": {
+            "version": "${{ steps.andy_info.outputs.version }}",
+            "release_date": "${{ steps.andy_info.outputs.date }}",
+            "download_url": "${{ steps.andy_info.outputs.download_url }}",
+            "artifacts_url": "${{ steps.andy_info.outputs.artifacts_url }}",
+            "windows_exe": "https://github.com/CallMeChewy/AndyLibrary/releases/latest/download/AndyLibrary-Standalone.exe",
+            "build_status": "success",
+            "educational_mission": "Getting education into the hands of people who can least afford it!",
+            "features": [
+              "1,200+ educational books",
+              "Offline-first operation", 
+              "Budget device optimization",
+              "Cost protection for students",
+              "Multi-platform support"
+            ]
+          }
+        }
+        EOF
+        
+        echo "Payload created for BowersWorld.com update"
+        cat update_payload.json
+        
+    # Option 1: Repository Dispatch (if BowersWorld-com has automation)
+    - name: Trigger BowersWorld.com update
+      if: env.BOWERSWORLD_TOKEN != ''
+      run: |
+        curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.BOWERSWORLD_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/repos/CallMeChewy/BowersWorld-com/dispatches \
+          -d '{"event_type":"andylibrary_update","client_payload":'"$(cat update_payload.json)"'}'
+          
+    # Option 2: Direct file update (if you want automated commits)
+    - name: Update BowersWorld.com files directly
+      if: env.BOWERSWORLD_TOKEN != ''
+      run: |
+        # Clone BowersWorld.com repository
+        git clone https://x-access-token:${{ secrets.BOWERSWORLD_TOKEN }}@github.com/CallMeChewy/BowersWorld-com.git
+        cd BowersWorld-com
+        
+        # Update download links in website files
+        if [ -f "index.html" ]; then
+          sed -i 's|https://github.com/CallMeChewy/AndyLibrary/releases/[^"]*|${{ steps.andy_info.outputs.download_url }}|g' index.html
+          sed -i 's|Version: [^<]*|Version: ${{ steps.andy_info.outputs.version }}|g' index.html
+          sed -i 's|Updated: [^<]*|Updated: ${{ steps.andy_info.outputs.date }}|g' index.html
+        fi
+        
+        # Update any JSON data files
+        if [ -f "data/downloads.json" ]; then
+          cp ../update_payload.json data/downloads.json
+        fi
+        
+        # Commit changes
+        git config user.email "action@github.com"
+        git config user.name "AndyLibrary Bot"
+        git add .
+        if ! git diff --staged --quiet; then
+          git commit -m "🚀 Auto-update: AndyLibrary ${{ steps.andy_info.outputs.version }} released"
+          git push
+          echo "✅ BowersWorld.com updated successfully"
+        else
+          echo "ℹ️ No changes needed in BowersWorld.com"
+        fi
+        
+    # Option 3: Webhook notification (if BowersWorld.com has webhook endpoint)
+    - name: Send webhook notification
+      if: env.BOWERSWORLD_WEBHOOK_URL != ''
+      run: |
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -d @update_payload.json \
+          ${{ secrets.BOWERSWORLD_WEBHOOK_URL }}
+          
+    # Option 4: Create deployment artifact for manual update
+    - name: Create BowersWorld update package
+      run: |
+        mkdir -p bowersworld-update
+        cp update_payload.json bowersworld-update/
+        
+        # Create HTML snippet for easy copy-paste
+        cat > bowersworld-update/download-section.html << EOF
+        <!-- AndyLibrary Download Section - Auto-generated $(date) -->
+        <div class="andylibrary-downloads">
+          <h3>📚 Download AndyLibrary ${{ steps.andy_info.outputs.version }}</h3>
+          <p><strong>Educational Mission:</strong> Getting education into the hands of people who can least afford it!</p>
+          
+          <div class="download-buttons">
+            <a href="${{ steps.andy_info.outputs.download_url }}" class="download-btn primary">
+              🚀 Download Latest Release
+            </a>
+            <a href="${{ steps.andy_info.outputs.artifacts_url }}" class="download-btn secondary">
+              🔧 Development Builds
+            </a>
+          </div>
+          
+          <div class="features">
+            <ul>
+              <li>✅ 1,200+ educational books</li>
+              <li>✅ Offline-first operation</li>
+              <li>✅ Budget device optimization</li>
+              <li>✅ Cost protection for students</li>
+            </ul>
+          </div>
+          
+          <p><small>Version ${{ steps.andy_info.outputs.version }} • Released ${{ steps.andy_info.outputs.date }}</small></p>
+        </div>
+        EOF
+        
+        # Create JavaScript snippet for dynamic updates
+        cat > bowersworld-update/andylibrary-widget.js << EOF
+        // AndyLibrary Auto-Update Widget
+        const andyLibraryData = $(cat update_payload.json);
+        
+        function updateAndyLibrarySection() {
+          const section = document.getElementById('andylibrary-section');
+          if (section) {
+            section.innerHTML = \`
+              <h3>📚 AndyLibrary \${andyLibraryData.andylibrary.version}</h3>
+              <p>\${andyLibraryData.andylibrary.educational_mission}</p>
+              <a href="\${andyLibraryData.andylibrary.download_url}" class="download-btn">
+                Download Latest
+              </a>
+            \`;
+          }
+        }
+        
+        // Auto-update on page load
+        document.addEventListener('DOMContentLoaded', updateAndyLibrarySection);
+        EOF
+        
+    - name: Upload BowersWorld update package
+      uses: actions/upload-artifact@v4
+      with:
+        name: bowersworld-update-package
+        path: bowersworld-update/
+        retention-days: 30
+        
+    - name: Summary
+      run: |
+        echo "🌍 BowersWorld.com Update Summary"
+        echo "================================="
+        echo "AndyLibrary Version: ${{ steps.andy_info.outputs.version }}"
+        echo "Release Date: ${{ steps.andy_info.outputs.date }}"
+        echo "Download URL: ${{ steps.andy_info.outputs.download_url }}"
+        echo ""
+        echo "📦 Update package created with:"
+        echo "  • JSON data for API integration"
+        echo "  • HTML snippet for manual insertion"
+        echo "  • JavaScript widget for dynamic updates"
+        echo ""
+        echo "🔗 Next steps:"
+        echo "  • Download the 'bowersworld-update-package' artifact"
+        echo "  • Apply updates to BowersWorld.com"
+        echo "  • Test download links"
+        echo "  • Verify educational mission messaging"
