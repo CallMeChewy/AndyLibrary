@@ -1,0 +1,41 @@
+# BowersWorld.com Jekyll Configuration
+
+title: "BowersWorld - Educational Mission"
+description: "Getting education into the hands of people who can least afford it!"
+url: "https://bowersworld.com"
+baseurl: ""
+
+# Educational mission configuration
+mission:
+  primary: "Getting education into the hands of people who can least afford it!"
+  focus_areas:
+    - "Cost protection for students"
+    - "Offline-first educational access"
+    - "Budget device optimization" 
+    - "Global educational equity"
+
+# AndyLibrary integration settings
+andylibrary:
+  repository: "CallMeChewy/AndyLibrary"
+  download_base: "https://github.com/CallMeChewy/AndyLibrary/releases/latest"
+  features:
+    - "1,200+ educational books"
+    - "Offline-first operation"
+    - "Budget device friendly"
+    - "Zero student cost"
+    - "Multi-platform support"
+
+# Contact information
+contact:
+  email: "contact@bowersworld.com"
+  github: "CallMeChewy"
+
+# Jekyll settings
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-sitemap
+  - jekyll-feed
+
+# GitHub Pages settings
+github: [metadata]

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BowersWorld - Educational Mission</title>
+    <meta name="description" content="Getting education into the hands of people who can least afford it! Access 1,200+ educational books through AndyLibrary.">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 80px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .mission-statement {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            padding: 80px 20px;
+            background: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .download-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .version-info {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <h1>🌍 BowersWorld</h1>
+            <p class="mission-statement">
+                <strong>Educational Mission:</strong><br>
+                Getting education into the hands of people who can least afford it!
+            </p>
+            
+            <div>
+                <a href="#andylibrary" class="btn btn-primary">
+                    📚 Access Library Now
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="andylibrary">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 20px; font-size: 2.5rem;">
+                📚 AndyLibrary - Free Educational Access
+            </h2>
+            
+            <div class="download-card">
+                <h3 style="margin-bottom: 20px; font-size: 2rem;">Download AndyLibrary</h3>
+                <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                    Access 1,200+ educational books instantly. No registration required.
+                </p>
+                
+                <div class="version-info" id="version-info">
+                    <div>🔄 Loading latest version information...</div>
+                </div>
+                
+                <div>
+                    <a href="#" id="download-latest" class="btn btn-primary">
+                        🚀 Download Latest Release
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 BowersWorld - Built with love for students worldwide! 🌍📖</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-update AndyLibrary information from GitHub API
+        async function updateAndyLibraryInfo() {
+            try {
+                const response = await fetch('https://api.github.com/repos/CallMeChewy/AndyLibrary/releases/latest');
+                const release = await response.json();
+                
+                document.getElementById('version-info').innerHTML = `
+                    <div><strong>Latest Version:</strong> ${release.tag_name || 'v1.0.0'}</div>
+                    <div><strong>Released:</strong> ${new Date(release.published_at || Date.now()).toLocaleDateString()}</div>
+                `;
+                
+                document.getElementById('download-latest').href = release.html_url || 'https://github.com/CallMeChewy/AndyLibrary/releases/latest';
+                
+            } catch (error) {
+                document.getElementById('version-info').innerHTML = `
+                    <div><strong>Status:</strong> Visit GitHub for latest downloads</div>
+                `;
+                document.getElementById('download-latest').href = 'https://github.com/CallMeChewy/AndyLibrary/releases/latest';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', updateAndyLibraryInfo);
+    </script>
+</body>
+</html>
