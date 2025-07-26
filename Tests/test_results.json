@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-07-26T04:20:32.056202",
+  "platform": "linux",
+  "python_version": "3.11.9 (main, Jun  3 2025, 19:36:31) [GCC 14.2.0]",
+  "test_suites": {
+    "test_user_environment_simple": {
+      "tests_run": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "success_rate": 100.0
+    },
+    "test_database_manager_isolated": {
+      "tests_run": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "success_rate": 100.0
+    }
+  },
+  "summary": {
+    "total_tests": 15,
+    "passed": 15,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration": 1.3
+  }
+}

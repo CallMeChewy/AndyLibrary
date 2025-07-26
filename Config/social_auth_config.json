@@ -1,0 +1,74 @@
+# File: social_auth_config.json
+# Path: /home/herb/Desktop/AndyLibrary/Config/social_auth_config.json
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-25
+# Last Modified: 2025-07-25 10:20AM
+
+{
+  "oauth_providers": {
+    "google": {
+      "name": "Google",
+      "client_id": "${GOOGLE_CLIENT_ID}",
+      "client_secret": "${GOOGLE_CLIENT_SECRET}",
+      "authorization_url": "https://accounts.google.com/o/oauth2/auth",
+      "token_url": "https://oauth2.googleapis.com/token",
+      "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "scope": "openid email profile",
+      "redirect_uri": "http://localhost:8081/api/auth/oauth/google/callback",
+      "enabled": false,
+      "test_mode": true
+    },
+    "github": {
+      "name": "GitHub",
+      "client_id": "${GITHUB_CLIENT_ID}",
+      "client_secret": "${GITHUB_CLIENT_SECRET}",
+      "authorization_url": "https://github.com/login/oauth/authorize",
+      "token_url": "https://github.com/login/oauth/access_token",
+      "user_info_url": "https://api.github.com/user",
+      "scope": "user:email",
+      "redirect_uri": "http://localhost:8081/api/auth/oauth/github/callback",
+      "enabled": false,
+      "test_mode": true
+    },
+    "facebook": {
+      "name": "Facebook",
+      "client_id": "${FACEBOOK_APP_ID}",
+      "client_secret": "${FACEBOOK_APP_SECRET}",
+      "authorization_url": "https://www.facebook.com/v18.0/dialog/oauth",
+      "token_url": "https://graph.facebook.com/v18.0/oauth/access_token",
+      "user_info_url": "https://graph.facebook.com/me?fields=id,name,email",
+      "scope": "email",
+      "redirect_uri": "http://localhost:8081/api/auth/oauth/facebook/callback",
+      "enabled": false,
+      "test_mode": true
+    }
+  },
+  
+  "configuration": {
+    "environment": "DEVELOPMENT",
+    "test_mode_enabled": true,
+    "fallback_to_email_auth": true,
+    "session_timeout": 3600,
+    "csrf_protection": true,
+    "state_parameter_length": 32
+  },
+  
+  "development_setup_instructions": {
+    "note": "To enable OAuth providers for testing:",
+    "steps": [
+      "1. Set up OAuth apps with providers (see oauth_test_accounts.json)",
+      "2. Set environment variables with your test credentials",
+      "3. Update 'enabled': true for providers you want to test",
+      "4. Restart the AndyLibrary server",
+      "5. Social login buttons will appear on auth.html"
+    ],
+    "environment_variables": [
+      "export GOOGLE_CLIENT_ID='your-google-client-id'",
+      "export GOOGLE_CLIENT_SECRET='your-google-client-secret'",
+      "export GITHUB_CLIENT_ID='your-github-client-id'",
+      "export GITHUB_CLIENT_SECRET='your-github-client-secret'",
+      "export FACEBOOK_APP_ID='your-facebook-app-id'",
+      "export FACEBOOK_APP_SECRET='your-facebook-app-secret'"
+    ]
+  }
+}

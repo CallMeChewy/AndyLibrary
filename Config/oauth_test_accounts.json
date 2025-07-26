@@ -1,0 +1,117 @@
+# File: oauth_test_accounts.json
+# Path: /home/herb/Desktop/AndyLibrary/Config/oauth_test_accounts.json
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-25
+# Last Modified: 2025-07-25 10:19AM
+
+{
+  "development_oauth_test_accounts": {
+    "description": "Test accounts provided by OAuth providers for development and testing",
+    "security_note": "These are development test accounts only - never use real user credentials",
+    
+    "google": {
+      "provider": "Google OAuth 2.0",
+      "test_environment": "https://developers.google.com/identity/protocols/oauth2",
+      "test_account_setup": {
+        "step_1": "Visit Google Cloud Console (console.cloud.google.com)",
+        "step_2": "Create new project: 'AndyLibrary-OAuth-Test'",
+        "step_3": "Enable Google+ API for OAuth testing",
+        "step_4": "Create OAuth 2.0 credentials",
+        "step_5": "Add test users in OAuth consent screen"
+      },
+      "test_users": {
+        "note": "Add test users in Google Cloud Console > APIs & Services > OAuth consent screen > Test users",
+        "format": "test.user@gmail.com (developer's test email)",
+        "redirect_uri": "http://localhost:8081/api/auth/oauth/google/callback"
+      },
+      "environment_variables": {
+        "GOOGLE_CLIENT_ID": "your-google-client-id.apps.googleusercontent.com",
+        "GOOGLE_CLIENT_SECRET": "your-google-client-secret"
+      }
+    },
+    
+    "github": {
+      "provider": "GitHub OAuth Apps",
+      "test_environment": "https://docs.github.com/en/developers/apps/building-oauth-apps",
+      "test_account_setup": {
+        "step_1": "Visit GitHub Settings > Developer settings > OAuth Apps",
+        "step_2": "Create new OAuth App: 'AndyLibrary Test'",
+        "step_3": "Homepage URL: http://localhost:8081",
+        "step_4": "Authorization callback URL: http://localhost:8081/api/auth/oauth/github/callback"
+      },
+      "test_users": {
+        "note": "Use your own GitHub account for testing",
+        "format": "developer's GitHub username",
+        "scope": "user:email (to read email address)"
+      },
+      "environment_variables": {
+        "GITHUB_CLIENT_ID": "your-github-client-id",
+        "GITHUB_CLIENT_SECRET": "your-github-client-secret"
+      }
+    },
+    
+    "facebook": {
+      "provider": "Facebook Login",
+      "test_environment": "https://developers.facebook.com/docs/facebook-login",
+      "test_account_setup": {
+        "step_1": "Visit Facebook for Developers (developers.facebook.com)",
+        "step_2": "Create new app: 'AndyLibrary OAuth Test'",
+        "step_3": "Add Facebook Login product",
+        "step_4": "Configure OAuth redirect URIs"
+      },
+      "test_users": {
+        "note": "Facebook provides test users through App Dashboard > Roles > Test Users",
+        "format": "Auto-generated test users with fake emails",
+        "redirect_uri": "http://localhost:8081/api/auth/oauth/facebook/callback"
+      },
+      "environment_variables": {
+        "FACEBOOK_APP_ID": "your-facebook-app-id",
+        "FACEBOOK_APP_SECRET": "your-facebook-app-secret"
+      }
+    }
+  },
+  
+  "testing_workflow": {
+    "description": "How to test OAuth integration with provider test accounts",
+    "steps": [
+      {
+        "step": 1,
+        "action": "Set up OAuth apps with each provider using the instructions above",
+        "result": "Client IDs and secrets for each provider"
+      },
+      {
+        "step": 2,
+        "action": "Update Config/social_auth_config.json with test credentials",
+        "result": "OAuth providers configured for testing"
+      },
+      {
+        "step": 3,
+        "action": "Start AndyLibrary in development mode",
+        "result": "Server running with OAuth test configuration"
+      },
+      {
+        "step": 4,
+        "action": "Navigate to BowersWorld page and try social login buttons",
+        "result": "OAuth flow initiated with test accounts"
+      },
+      {
+        "step": 5,
+        "action": "Complete OAuth authorization with test accounts",
+        "result": "User authenticated and redirected to setup page"
+      },
+      {
+        "step": 6,
+        "action": "Verify user installation process works with OAuth users",
+        "result": "Complete end-to-end test of social login flow"
+      }
+    ]
+  },
+  
+  "security_reminders": [
+    "Never commit real OAuth credentials to version control",
+    "Use environment variables for sensitive configuration",
+    "Test accounts are for development only - not production",
+    "Regularly rotate test credentials for security",
+    "Each developer should use their own test OAuth apps"
+  ]
+}

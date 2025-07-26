@@ -1,11 +1,11 @@
 # File: MainAPI.py
-# Path: AndyGoogle/Source/API/MainAPI.py
+# Path: /home/herb/Desktop/AndyLibrary/Source/API/MainAPI.py
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-12
-# Last Modified: 2025-07-24 07:15AM
+# Last Modified: 2025-07-26 05:35AM
 """
-Description: FastAPI main server for AndyGoogle with Google Drive integration
-Provides RESTful API endpoints for library management with cloud synchronization
+Description: Enhanced FastAPI main server for AndyLibrary with authentication
+Provides RESTful API endpoints for library management with user authentication and educational mission features
 """
 
 import os
@@ -17,11 +17,14 @@ import requests
 import psutil
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request, Security, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
-from pydantic import BaseModel
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
+import logging
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -31,6 +34,36 @@ try:
 except ImportError:
     DriveManager = None
     print("⚠️ DriveManager not available - Google Drive functionality disabled")
+
+try:
+    from Core.DatabaseManager import DatabaseManager
+except ImportError:
+    DatabaseManager = None
+    print("⚠️ DatabaseManager not available - authentication functionality disabled")
+
+try:
+    from Core.SocialAuthManager import SocialAuthManager
+except ImportError:
+    SocialAuthManager = None
+    print("⚠️ SocialAuthManager not available - social login functionality disabled")
+
+try:
+    from Core.UserSetupManager import UserSetupManager
+except ImportError:
+    UserSetupManager = None
+    print("⚠️ UserSetupManager not available - user setup functionality disabled")
+
+try:
+    from API.AdvancedSearchAPI import CreateAdvancedSearchAPI
+except ImportError:
+    CreateAdvancedSearchAPI = None
+    print("⚠️ AdvancedSearchAPI not available - advanced search functionality disabled")
+
+try:
+    from Core.UserProgressManager import UserProgressManager
+except ImportError:
+    UserProgressManager = None
+    print("⚠️ UserProgressManager not available - progress tracking functionality disabled")
 
 try:
     from Utils.SheetsLogger import SheetsLogger  
@@ -46,29 +79,37 @@ except ImportError:
 
 # FastAPI app instance
 app = FastAPI(
-    title="AndyGoogle Library API",
+    title="AndyLibrary API",
     description="""
-    **Cloud-synchronized digital library management system**
+    **Enhanced Educational Library Platform with Authentication**
+    
+    ## Educational Mission
+    "Getting education into the hands of people who can least afford it"
     
     ## Features
     - 📚 **Book Management**: Search, filter, and browse your digital library
+    - 🔐 **User Authentication**: Secure registration and login with educational mission focus
     - 🌐 **Google Drive Sync**: Seamless cloud synchronization 
     - 🔍 **Smart Search**: Full-text search across titles and metadata
     - 📱 **Multi-mode**: LOCAL (offline) or GDRIVE (cloud sync)
+    - 🎯 **Educational Analytics**: Anonymous usage data for collection development
+    - 📖 **Publication Requests**: Community-driven collection development
     - 🚀 **High Performance**: Optimized database queries with indexing
     - 🛡️ **Robust**: Auto-recovery and graceful error handling
     
     ## Quick Start
-    1. **Local Mode**: `python StartAndyGoogle.py --mode local`
-    2. **Google Drive**: `python StartAndyGoogle.py --mode gdrive`
-    3. **Stable Mode**: `python RunStableMode.py --mode gdrive`
+    1. **Register**: Create account with mission acknowledgment
+    2. **Browse**: Access library with subscription tier limits
+    3. **Request**: Help us grow the collection with publication requests
     
     ## API Status
     - Health check: `/api/health`
-    - Current mode: `/api/mode`  
+    - Authentication: `/api/auth/*`
     - Library stats: `/api/stats`
     """,
-    version="1.0.0",
+    version="2.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
     contact={
         "name": "AndyLibrary Support",
         "url": "https://github.com/your-repo/andylibrary"
@@ -79,9 +120,57 @@ app = FastAPI(
     }
 )
 
+# Security scheme for authentication
+security = HTTPBearer(auto_error=False)
+
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Global managers (initialized on startup)
 drive_manager = None
 sheets_logger = None
+progress_manager = None
+
+# ==================== AUTHENTICATION HELPERS ====================
+
+def get_auth_database():
+    """Dependency to get authenticated database manager instance"""
+    if not DatabaseManager:
+        raise HTTPException(status_code=503, detail="Authentication system not available")
+    
+    # Use the main database path
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    db_path = os.path.join(base_dir, "Data", "Databases", "MyLibrary.db")
+    return DatabaseManager(db_path)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[Dict[str, Any]]:
+    """Get current authenticated user from token"""
+    if not credentials:
+        return None
+    
+    try:
+        db_manager = get_auth_database()
+        result = db_manager.ValidateSession(credentials.credentials)
+        
+        if result.get('success'):
+            return result['user']
+        return None
+    except Exception as e:
+        logging.error(f"Error validating session: {e}")
+        return None
+
+async def require_auth(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
+    """Require authentication dependency"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return current_user
+
 
 
 # Pydantic models for API requests/responses
@@ -144,6 +233,101 @@ class BudgetSummaryResponse(BaseModel):
     budget_used_percentage: float
     downloads_count: int
     budget_status: str
+
+# ==================== AUTHENTICATION MODELS ====================
+
+class UserPreferencesRequest(BaseModel):
+    """User preferences for educational mission analytics"""
+    data_sharing_consent: bool = Field(default=False, description="Consent to anonymous data sharing for educational mission")
+    anonymous_usage_consent: bool = Field(default=False, description="Consent to anonymous usage analytics")
+    preferred_subjects: List[str] = Field(default=[], description="Academic subjects of interest")
+    academic_level: Optional[str] = Field(None, description="Academic level")
+    institution_type: Optional[str] = Field(None, description="Type of institution")
+    geographic_region: Optional[str] = Field(None, description="Geographic region")
+
+class PublicationRequestModel(BaseModel):
+    """Publication request for collection development"""
+    request_type: str = Field(..., description="Type of request: subject_area, specific_title, author, level")
+    content_description: str = Field(..., min_length=3, description="Description of requested content")
+    subject_area: Optional[str] = Field(None, description="Academic subject area")
+    reason: Optional[str] = Field(None, description="Reason for the request")
+    
+    @field_validator('request_type')
+    @classmethod
+    def validate_request_type(cls, v):
+        valid_types = ['subject_area', 'specific_title', 'author', 'level']
+        if v not in valid_types:
+            raise ValueError(f'Request type must be one of: {valid_types}')
+        return v
+
+class UserRegistrationRequest(BaseModel):
+    """Enhanced user registration request with mission awareness"""
+    email: str = Field(..., pattern=r'^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$', description="Valid email address")
+    password: str = Field(..., min_length=8, max_length=100, description="Password (8-100 characters)")
+    username: Optional[str] = Field(default=None, min_length=3, max_length=30, description="Username (optional)")
+    subscription_tier: str = Field(default='free', pattern=r'^(free|scholar|researcher|institution)$', description="Subscription tier")
+    
+    # Educational mission and data consent
+    mission_acknowledgment: bool = Field(..., description="Acknowledgment of AndyLibrary educational mission")
+    user_preferences: Optional[UserPreferencesRequest] = Field(None, description="User preferences for educational analytics")
+    publication_requests: List[PublicationRequestModel] = Field(default=[], description="Initial publication requests")
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, value):
+        """Validate email format"""
+        return value.lower().strip()
+    
+    @field_validator('mission_acknowledgment')
+    @classmethod
+    def validate_mission_acknowledgment(cls, value):
+        """Ensure mission acknowledgment is provided"""
+        if not value:
+            raise ValueError('You must acknowledge our educational mission to create an account')
+        return value
+
+class UserLoginRequest(BaseModel):
+    """Request model for user login"""
+    email: str = Field(..., description="User email address")
+    password: str = Field(..., description="User password")
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, value):
+        return value.lower().strip()
+
+class UserResponse(BaseModel):
+    """Response model for user information"""
+    id: int
+    email: str
+    username: Optional[str] = None
+    subscription_tier: str
+    created_at: str
+
+class LoginResponse(BaseModel):
+    """Response model for successful login"""
+    user: UserResponse
+    session_token: str
+    refresh_token: str
+    expires_at: str
+    message: str = "Login successful"
+
+class RegisterResponse(BaseModel):
+    """Response model for successful registration"""
+    user: UserResponse
+    message: str = "Registration successful"
+    preferences_saved: bool = False
+    publication_requests_saved: int = 0
+
+def convert_user_to_response(user_data: Dict[str, Any]) -> UserResponse:
+    """Convert database user data to API response model"""
+    return UserResponse(
+        id=user_data.get('id', user_data.get('user_id')),
+        email=user_data['email'],
+        username=user_data.get('username'),
+        subscription_tier=user_data['subscription_tier'],
+        created_at=user_data.get('created_at', datetime.now().isoformat())
+    )
 
 # Dependency to get database connection
 def get_database():
@@ -957,6 +1141,492 @@ async def get_stats(request: Request, db: sqlite3.Connection = Depends(get_datab
         offline_mode=sync_status.get('offline_mode', False)
     )
 
+# ==================== AUTHENTICATION ENDPOINTS ====================
+
+@app.post("/api/auth/register", response_model=RegisterResponse)
+async def register_user(registration: UserRegistrationRequest, request: Request):
+    """
+    Register new user account for AndyLibrary
+    Creates user with mission acknowledgment and processes preferences/publication requests
+    """
+    try:
+        db_manager = get_auth_database()
+        
+        # Get client info
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+        
+        # Create user account
+        user_result = db_manager.CreateUser(
+            Email=registration.email,
+            Password=registration.password,
+            Username=registration.username,
+            SubscriptionTier=registration.subscription_tier,
+            MissionAcknowledged=registration.mission_acknowledgment
+        )
+        
+        if not user_result.get('success'):
+            if "Email already registered" in user_result.get('error', ''):
+                raise HTTPException(status_code=409, detail="Email address already registered")
+            elif "Username already taken" in user_result.get('error', ''):
+                raise HTTPException(status_code=409, detail="Username already taken")
+            elif "Mission acknowledgment is required" in user_result.get('error', ''):
+                raise HTTPException(status_code=400, detail="You must acknowledge our educational mission to create an account")
+            else:
+                raise HTTPException(status_code=400, detail="Registration failed")
+        
+        user_id = user_result['user_id']
+        preferences_saved = False
+        publication_requests_saved = 0
+        
+        # Process user preferences if provided
+        if registration.user_preferences:
+            pref_result = db_manager.CreateUserPreferences(
+                user_id, 
+                registration.user_preferences.model_dump()
+            )
+            preferences_saved = pref_result.get('success', False)
+        
+        # Process publication requests if provided
+        for pub_request in registration.publication_requests:
+            req_result = db_manager.CreatePublicationRequest(
+                user_id,
+                pub_request.model_dump()
+            )
+            if req_result.get('success'):
+                publication_requests_saved += 1
+        
+        user_response = convert_user_to_response(user_result)
+        
+        return RegisterResponse(
+            user=user_response,
+            message=f"Registration successful! Welcome to AndyLibrary, {registration.subscription_tier} member.",
+            preferences_saved=preferences_saved,
+            publication_requests_saved=publication_requests_saved
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Registration error: {error}")
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+@app.post("/api/auth/login", response_model=LoginResponse)
+async def login_user(login: UserLoginRequest, request: Request):
+    """
+    Authenticate user login and create session
+    Returns user info and session tokens for library access
+    """
+    try:
+        db_manager = get_auth_database()
+        
+        # Get client info
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+        
+        # Authenticate user
+        auth_result = db_manager.AuthenticateUser(login.email, login.password)
+        
+        if not auth_result.get('success'):
+            error_msg = auth_result.get('error', 'Invalid credentials')
+            if "Account temporarily locked" in error_msg:
+                raise HTTPException(status_code=423, detail=error_msg)
+            else:
+                raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        user_data = auth_result['user']
+        
+        # Create user session
+        session_result = db_manager.CreateUserSession(
+            UserId=user_data['id'],
+            IPAddress=client_ip,
+            UserAgent=user_agent
+        )
+        
+        if not session_result.get('success'):
+            raise HTTPException(status_code=500, detail="Failed to create user session")
+        
+        user_response = convert_user_to_response(user_data)
+        
+        return LoginResponse(
+            user=user_response,
+            session_token=session_result['session_token'],
+            refresh_token=session_result['refresh_token'],
+            expires_at=session_result['expires_at'],
+            message=f"Welcome back to AndyLibrary, {user_data['subscription_tier']} member!"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Login error: {error}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+@app.post("/api/auth/logout")
+async def logout_user(current_user: Dict[str, Any] = Depends(require_auth), 
+                     credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Logout user and deactivate session
+    Requires valid authentication token
+    """
+    try:
+        db_manager = get_auth_database()
+        
+        # Deactivate session
+        logout_query = """
+            UPDATE UserSessions 
+            SET IsActive = FALSE 
+            WHERE SessionToken = ? AND UserId = ?
+        """
+        
+        if db_manager.Connection:
+            db_manager.Connection.execute(logout_query, (credentials.credentials, current_user['id']))
+            db_manager.Connection.commit()
+            
+            return {"message": "Logout successful"}
+        else:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Logout error: {error}")
+        raise HTTPException(status_code=500, detail="Logout failed")
+
+@app.get("/api/auth/verify-email")
+async def verify_user_email(token: str, request: Request):
+    """
+    Verify user email address with verification token
+    Activates user account and sets basic access level
+    """
+    try:
+        if not token:
+            raise HTTPException(status_code=400, detail="Verification token is required")
+        
+        db_manager = get_auth_database()
+        
+        # Verify email with token
+        verification_result = db_manager.VerifyUserEmail(token)
+        
+        if not verification_result["success"]:
+            raise HTTPException(status_code=400, detail=verification_result["error"])
+        
+        # Return success page or redirect
+        return {
+            "success": True,
+            "message": verification_result["message"],
+            "user_email": verification_result["email"],
+            "access_level": "basic"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Email verification error: {error}")
+        raise HTTPException(status_code=500, detail="Email verification failed")
+
+# ==================== SOCIAL LOGIN ENDPOINTS ====================
+
+@app.get("/api/auth/oauth/providers")
+async def get_oauth_providers():
+    """
+    Get available OAuth providers (Google, GitHub, Facebook)
+    Returns only configured providers as optional login methods
+    """
+    try:
+        if not SocialAuthManager:
+            return {
+                "providers": {},
+                "message": "Social login not configured. Please use email registration.",
+                "email_available": True
+            }
+        
+        social_auth = SocialAuthManager()
+        providers = social_auth.GetAvailableProviders()
+        
+        return {
+            "providers": providers,
+            "message": "Choose your preferred login method or use email registration",
+            "email_available": True
+        }
+        
+    except Exception as error:
+        logging.error(f"OAuth providers error: {error}")
+        return {
+            "providers": {},
+            "message": "Social login temporarily unavailable. Please use email registration.",
+            "email_available": True
+        }
+
+@app.get("/api/auth/oauth/{provider}")
+async def oauth_login(provider: str, request: Request):
+    """
+    Initiate OAuth login with social provider (Google, GitHub, Facebook)
+    Redirects user to provider's authorization page
+    """
+    try:
+        if not SocialAuthManager:
+            raise HTTPException(
+                status_code=503, 
+                detail="Social login not available. Please use email registration instead."
+            )
+        
+        social_auth = SocialAuthManager()
+        
+        # Generate OAuth authorization URL
+        auth_result = social_auth.GenerateAuthUrl(
+            provider=provider,
+            redirect_uri=f"{request.base_url}api/auth/oauth/callback"
+        )
+        
+        if not auth_result["success"]:
+            raise HTTPException(status_code=400, detail=auth_result["error"])
+        
+        # Store state in session for security (in production, use secure session storage)
+        # For now, we'll include it in the redirect and verify it in callback
+        
+        return RedirectResponse(url=auth_result["auth_url"])
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"OAuth initiation error for {provider}: {error}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Social login failed. Please try email registration instead."
+        )
+
+@app.get("/api/auth/oauth/callback/{provider}")
+async def oauth_callback(provider: str, code: str = None, state: str = None, error: str = None, request: Request = Request):
+    """
+    Handle OAuth callback from social providers
+    Creates or updates user account and establishes session
+    """
+    try:
+        # Handle OAuth errors
+        if error:
+            return RedirectResponse(
+                url=f"/auth.html?error=oauth_cancelled&message=Social login was cancelled. You can still register with email."
+            )
+        
+        if not code:
+            return RedirectResponse(
+                url=f"/auth.html?error=oauth_failed&message=Social login failed. Please try email registration."
+            )
+        
+        if not SocialAuthManager:
+            return RedirectResponse(
+                url=f"/auth.html?error=oauth_unavailable&message=Social login not available. Please use email registration."
+            )
+        
+        social_auth = SocialAuthManager()
+        db_manager = get_auth_database()
+        
+        # Handle OAuth callback
+        callback_result = social_auth.HandleOAuthCallback(
+            provider=provider,
+            code=code,
+            state=state,
+            redirect_uri=f"{request.base_url}api/auth/oauth/callback"
+        )
+        
+        if not callback_result["success"]:
+            return RedirectResponse(
+                url=f"/auth.html?error=oauth_failed&message={callback_result['error']}"
+            )
+        
+        # Create or update user account
+        user_result = social_auth.CreateOrUpdateSocialUser(
+            callback_result["user_info"], 
+            db_manager
+        )
+        
+        if not user_result["success"]:
+            return RedirectResponse(
+                url=f"/auth.html?error=account_creation_failed&message={user_result['error']}"
+            )
+        
+        # Create user session
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+        
+        session_result = db_manager.CreateUserSession(
+            UserId=user_result["user_id"],
+            IPAddress=client_ip,
+            UserAgent=user_agent
+        )
+        
+        if not session_result["success"]:
+            return RedirectResponse(
+                url=f"/auth.html?error=session_failed&message=Login successful but session creation failed"
+            )
+        
+        # Redirect to main library with success message
+        return RedirectResponse(
+            url=f"/auth.html?success=oauth_login&provider={provider}&message={user_result['message']}&token={session_result['session_token']}"
+        )
+        
+    except Exception as error:
+        logging.error(f"OAuth callback error for {provider}: {error}")
+        return RedirectResponse(
+            url=f"/auth.html?error=oauth_error&message=Social login failed. Please try email registration."
+        )
+
+# ==================== USER SETUP ENDPOINTS ====================
+
+@app.post("/api/setup/install")
+async def install_andylibrary(current_user: Dict[str, Any] = Depends(require_auth)):
+    """
+    Complete AndyLibrary installation process for authenticated user in isolated environment
+    Downloads database, copies files, creates shortcuts, and prepares for native app launch
+    """
+    try:
+        if not UserSetupManager:
+            raise HTTPException(
+                status_code=503,
+                detail="User setup system not available"
+            )
+        
+        # Initialize with user-specific information for proper environment isolation
+        setup_manager = UserSetupManager(
+            user_id=current_user.get("id"),
+            username=current_user.get("username")
+        )
+        
+        # Get current user session info
+        auth_token = None  # We could extract this from the auth dependency if needed
+        
+        # Perform complete setup in user's isolated environment
+        setup_result = setup_manager.CompleteUserSetup(current_user, auth_token)
+        
+        if not setup_result["success"]:
+            raise HTTPException(status_code=500, detail=setup_result["error"])
+        
+        return {
+            "success": True,
+            "message": "AndyLibrary installed successfully in your isolated environment! You can now launch the native app.",
+            "installation_details": setup_result,
+            "next_step": "launch_app",
+            "environment_info": {
+                "type": "USER_INSTALLATION",
+                "isolated_from_dev": True,
+                "username": setup_manager.Username,
+                "platform": setup_manager.Platform,
+                "installation_path": str(setup_manager.AndyLibraryDir)
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Installation error: {error}")
+        raise HTTPException(status_code=500, detail=f"Installation failed: {str(error)}")
+
+@app.post("/api/setup/launch")
+async def launch_andylibrary(current_user: Dict[str, Any] = Depends(require_auth)):
+    """
+    Launch AndyLibrary native application from user's isolated environment
+    Starts the local server and opens the library interface
+    """
+    try:
+        if not UserSetupManager:
+            raise HTTPException(
+                status_code=503,
+                detail="User setup system not available"
+            )
+        
+        # Initialize with user-specific information for proper environment isolation
+        setup_manager = UserSetupManager(
+            user_id=current_user.get("id"),
+            username=current_user.get("username")
+        )
+        
+        # Launch the native app from user's isolated installation
+        launch_result = setup_manager.LaunchAndyLibrary()
+        
+        if not launch_result["success"]:
+            raise HTTPException(status_code=500, detail=launch_result["error"])
+        
+        return {
+            "success": True,
+            "message": launch_result["message"],
+            "app_launched": True,
+            "installation_path": launch_result["installation_path"],
+            "instructions": "AndyLibrary is now running! You can close this browser window."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error(f"Launch error: {error}")
+        raise HTTPException(status_code=500, detail=f"Launch failed: {str(error)}")
+
+@app.get("/api/setup/status")
+async def check_installation_status(current_user: Dict[str, Any] = Depends(require_auth)):
+    """
+    Check if AndyLibrary is already installed for this user in their isolated environment
+    """
+    try:
+        if not UserSetupManager:
+            return {"installed": False, "message": "Setup system not available"}
+        
+        # Initialize with user-specific information for proper path isolation
+        setup_manager = UserSetupManager(
+            user_id=current_user.get("id"),
+            username=current_user.get("username")
+        )
+        
+        # Check if user's isolated installation exists
+        config_file = setup_manager.ConfigDir / "user_config.json"
+        database_file = setup_manager.DatabaseDir / "MyLibrary.db"
+        
+        if config_file.exists() and database_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                
+                # Verify this is a proper user installation (not development)
+                env_type = config.get("environment", {}).get("type", "UNKNOWN")
+                is_isolated = config.get("environment", {}).get("isolated_from_dev", False)
+                
+                return {
+                    "installed": True,
+                    "installation_path": str(setup_manager.AndyLibraryDir),
+                    "database_path": str(database_file),
+                    "installed_at": config.get("user", {}).get("installed_at"),
+                    "database_version": config.get("database", {}).get("version"),
+                    "ready_to_launch": True,
+                    "environment_type": env_type,
+                    "isolated_from_dev": is_isolated,
+                    "username": setup_manager.Username,
+                    "platform": setup_manager.Platform
+                }
+            except Exception as e:
+                return {"installed": False, "message": f"Installation corrupted: {str(e)}"}
+        else:
+            return {
+                "installed": False,
+                "message": "AndyLibrary not installed",
+                "installation_required": True
+            }
+        
+    except Exception as error:
+        logging.error(f"Status check error: {error}")
+        return {"installed": False, "error": str(error)}
+
+@app.get("/api/auth/profile", response_model=UserResponse)
+async def get_user_profile(current_user: Dict[str, Any] = Depends(require_auth)):
+    """
+    Get current user profile information
+    Requires authentication
+    """
+    try:
+        return convert_user_to_response(current_user)
+        
+    except Exception as error:
+        logging.error(f"Profile error: {error}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve profile")
+
 @app.get("/api/performance/assessment")
 async def get_performance_assessment():
     """Get user's system performance assessment and recommendations"""
@@ -1162,14 +1832,230 @@ async def get_data_usage_analytics(request: Request, days: int = 30):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Data usage analytics failed: {e}")
 
+# ==================== ADVANCED FEATURES INTEGRATION ====================
+
+# Initialize advanced search API if available
+if CreateAdvancedSearchAPI:
+    try:
+        # Get database path
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        db_path = os.path.join(base_dir, "Data", "Databases", "MyLibrary.db")
+        
+        # Create and include advanced search router
+        advanced_search_router = CreateAdvancedSearchAPI(db_path)
+        app.include_router(advanced_search_router, prefix="/api", tags=["advanced_search"])
+        
+        print("✅ Advanced Search API integrated successfully")
+    except Exception as e:
+        print(f"⚠️ Failed to integrate Advanced Search API: {e}")
+
+# Progress tracking endpoints
+@app.post("/api/progress/session/start")
+async def start_reading_session(
+    request: Request,
+    session_data: dict,
+    current_user: Dict[str, Any] = Depends(require_auth)
+):
+    """Start a new reading session for progress tracking"""
+    try:
+        if not UserProgressManager:
+            raise HTTPException(status_code=503, detail="Progress tracking not available")
+        
+        # Initialize progress manager for this user
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        db_path = os.path.join(base_dir, "Data", "Databases", "MyLibrary.db")
+        progress_manager = UserProgressManager(db_path, current_user["id"])
+        
+        # Extract session data
+        book_id = session_data.get("book_id")
+        book_title = session_data.get("book_title", "Unknown Book")
+        book_category = session_data.get("book_category", "General")
+        device_type = session_data.get("device_type", "desktop")
+        
+        if not book_id:
+            raise HTTPException(status_code=400, detail="Book ID is required")
+        
+        # Start the reading session
+        session_id = progress_manager.StartReadingSession(
+            BookId=book_id,
+            BookTitle=book_title,
+            BookCategory=book_category,
+            DeviceType=device_type
+        )
+        
+        log_api_usage(request, "reading_session_start", f"book_id={book_id}")
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "book_id": book_id,
+            "started_at": datetime.now().isoformat(),
+            "message": "Reading session started successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to start reading session: {e}")
+        raise HTTPException(status_code=500, detail=f"Session start failed: {str(e)}")
+
+@app.post("/api/progress/session/end")
+async def end_reading_session(
+    request: Request,
+    session_data: dict,
+    current_user: Dict[str, Any] = Depends(require_auth)
+):
+    """End a reading session and update progress"""
+    try:
+        if not UserProgressManager:
+            raise HTTPException(status_code=503, detail="Progress tracking not available")
+        
+        # Initialize progress manager for this user
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        db_path = os.path.join(base_dir, "Data", "Databases", "MyLibrary.db")
+        progress_manager = UserProgressManager(db_path, current_user["id"])
+        
+        # Extract session data
+        session_id = session_data.get("session_id")
+        pages_read = session_data.get("pages_read", 0)
+        completion_percentage = session_data.get("completion_percentage", 0.0)
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        
+        # End the reading session
+        session_stats = progress_manager.EndReadingSession(
+            SessionId=session_id,
+            PagesRead=pages_read,
+            CompletionPercentage=completion_percentage
+        )
+        
+        log_api_usage(request, "reading_session_end", f"session_id={session_id}")
+        
+        return {
+            "success": True,
+            "session_stats": session_stats,
+            "message": "Reading session ended successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to end reading session: {e}")
+        raise HTTPException(status_code=500, detail=f"Session end failed: {str(e)}")
+
+@app.get("/api/progress/user")
+async def get_user_progress(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    current_user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get comprehensive user progress and statistics"""
+    try:
+        if not UserProgressManager:
+            raise HTTPException(status_code=503, detail="Progress tracking not available")
+        
+        # Initialize progress manager for this user
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        db_path = os.path.join(base_dir, "Data", "Databases", "MyLibrary.db")
+        progress_manager = UserProgressManager(db_path, current_user["id"])
+        
+        # Get user progress
+        progress_data = progress_manager.GetUserProgress(current_user["id"], limit)
+        
+        log_api_usage(request, "user_progress", f"user_id={current_user['id']}")
+        
+        return {
+            "success": True,
+            "progress": progress_data,
+            "user": {
+                "id": current_user["id"],
+                "username": current_user.get("username", "Anonymous"),
+                "email": current_user.get("email")
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to get user progress: {e}")
+        raise HTTPException(status_code=500, detail=f"Progress retrieval failed: {str(e)}")
+
+@app.post("/api/progress/bookmark")
+async def toggle_bookmark(
+    request: Request,
+    bookmark_data: dict,
+    current_user: Dict[str, Any] = Depends(require_auth)
+):
+    """Toggle bookmark status for a book"""
+    try:
+        if not UserProgressManager:
+            raise HTTPException(status_code=503, detail="Progress tracking not available")
+        
+        # Initialize progress manager for this user
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        db_path = os.path.join(base_dir, "Data", "Databases", "MyLibrary.db")
+        progress_manager = UserProgressManager(db_path, current_user["id"])
+        
+        book_id = bookmark_data.get("book_id")
+        if not book_id:
+            raise HTTPException(status_code=400, detail="Book ID is required")
+        
+        # Toggle bookmark
+        result = progress_manager.ToggleBookmark(current_user["id"], book_id)
+        
+        log_api_usage(request, "bookmark_toggle", f"book_id={book_id}")
+        
+        return {
+            "success": True,
+            "bookmark": result,
+            "message": f"Book {result['action']} successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to toggle bookmark: {e}")
+        raise HTTPException(status_code=500, detail=f"Bookmark toggle failed: {str(e)}")
+
 # Static file serving
 app.mount("/static", StaticFiles(directory="WebPages"), name="static")
 
-# Serve main web interface
+# Serve main web interface - redirect to BowersWorld promotional page
 @app.get("/")
 async def serve_main_page():
-    """Serve the main AndyGoogle web interface"""
+    """Serve the BowersWorld.com promotional page as the main landing"""
+    return FileResponse("WebPages/bowersworld.html")
+
+@app.get("/library")
+async def serve_library_page():
+    """Serve the main AndyLibrary interface (after authentication)"""
     return FileResponse("WebPages/desktop-library.html")
+
+@app.get("/auth.html")
+async def serve_auth_page():
+    """Serve the authentication page with enhanced registration"""
+    return FileResponse("WebPages/auth.html")
+
+@app.get("/bowersworld.html")
+async def serve_bowersworld_page():
+    """Serve the BowersWorld.com promotional page with Project Himalaya content"""
+    return FileResponse("WebPages/bowersworld.html")
+
+@app.get("/bowersworld")
+async def serve_bowersworld_redirect():
+    """Redirect /bowersworld to the full promotional page"""
+    return RedirectResponse(url="/bowersworld.html")
+
+@app.get("/favicon.ico")
+async def serve_favicon():
+    """Serve the favicon"""
+    return FileResponse("WebPages/favicon.ico")
+
+@app.get("/setup.html")
+async def serve_setup_page():
+    """Serve the AndyLibrary setup/installation page"""
+    return FileResponse("WebPages/setup.html")
 
 # Error handlers
 @app.exception_handler(HTTPException)
