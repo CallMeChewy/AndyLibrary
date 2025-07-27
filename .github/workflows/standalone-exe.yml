@@ -16,15 +16,20 @@ jobs:
       with:
         python-version: '3.11'
         
+    - name: Check Standalone directory
+      run: |
+        echo "Checking Standalone directory contents:"
+        dir Standalone
+        echo "Looking for StandaloneAndyLibrary.py:"
+        if exist Standalone\StandaloneAndyLibrary.py (echo "File found") else (echo "File NOT found")
+        
     - name: Install dependencies
+      working-directory: ./Standalone
       run: |
         pip install pyinstaller fastapi uvicorn aiofiles
         
-    - name: Copy standalone file to root
-      run: |
-        copy Standalone\StandaloneAndyLibrary.py .\
-        
     - name: Build Standalone EXE
+      working-directory: ./Standalone
       run: |
         pyinstaller --onefile --console StandaloneAndyLibrary.py --name AndyLibrary-Standalone
         
@@ -32,4 +37,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: AndyLibrary-Standalone-Windows
-        path: dist/AndyLibrary-Standalone.exe
+        path: Standalone/dist/AndyLibrary-Standalone.exe
