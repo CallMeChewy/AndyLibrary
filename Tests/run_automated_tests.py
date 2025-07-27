@@ -50,7 +50,9 @@ class AndyLibraryTestRunner:
         # Test modules to run
         test_modules = [
             "test_user_environment_simple",
-            "test_database_manager_isolated"
+            "test_database_manager_isolated", 
+            "test_pwa_features",
+            "test_pdf_reader"
         ]
         
         total_suite = unittest.TestSuite()

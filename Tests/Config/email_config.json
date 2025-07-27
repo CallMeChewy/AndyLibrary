@@ -1,0 +1,53 @@
+{
+  "active_provider": "sendgrid",
+  "from_email": "noreply@andylibrary.org",
+  "from_name": "AndyLibrary",
+  "reply_to": "support@andylibrary.org",
+  "providers": {
+    "sendgrid": {
+      "api_key": "",
+      "api_url": "https://api.sendgrid.com/v3/mail/send",
+      "enabled": true
+    },
+    "aws_ses": {
+      "access_key_id": "",
+      "secret_access_key": "",
+      "region": "us-east-1",
+      "enabled": false
+    },
+    "mailgun": {
+      "api_key": "",
+      "domain": "",
+      "api_url": "https://api.mailgun.net/v3",
+      "enabled": false
+    },
+    "smtp": {
+      "host": "smtp.gmail.com",
+      "port": 587,
+      "username": "",
+      "password": "",
+      "use_tls": true,
+      "enabled": false
+    }
+  },
+  "templates": {
+    "verification_email": {
+      "subject": "Welcome to AndyLibrary - Verify Your Email",
+      "template_id": "d-verification-template-id"
+    },
+    "password_reset": {
+      "subject": "AndyLibrary - Password Reset Request",
+      "template_id": "d-password-reset-template-id"
+    },
+    "welcome": {
+      "subject": "Welcome to AndyLibrary - Your Educational Library Awaits",
+      "template_id": "d-welcome-template-id"
+    }
+  },
+  "settings": {
+    "max_retries": 3,
+    "retry_delay": 5,
+    "timeout": 30,
+    "rate_limit": 100
+  }
+}
