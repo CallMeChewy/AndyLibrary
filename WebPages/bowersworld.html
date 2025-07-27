@@ -12,6 +12,14 @@
     <title>BowersWorld.com - Project Himalaya: AI-Human Educational Synergy</title>
     <link rel="icon" href="/static/assets/AndyLibrary.png" type="image/png">
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3182ce">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AndyLibrary">
+    <link rel="apple-touch-icon" href="/static/assets/AndyLibrary.png">
+    
     <style>
         * {
             margin: 0;
@@ -434,6 +442,111 @@
         document.querySelectorAll('.feature-card, .synergy-content, .stat-item').forEach(el => {
             observer.observe(el);
         });
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/service-worker.js');
+                    console.log('📚 PWA Service Worker registered:', registration);
+                    
+                    // Check for updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New content available
+                                if (confirm('📖 New library content available! Update now?')) {
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    });
+                    
+                    // Show install prompt for tablets
+                    let deferredPrompt;
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        deferredPrompt = e;
+                        
+                        // Show install banner after 3 seconds
+                        setTimeout(() => {
+                            showInstallBanner(deferredPrompt);
+                        }, 3000);
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ PWA Service Worker registration failed:', error);
+                }
+            });
+        }
+
+        // Show tablet-friendly install banner
+        function showInstallBanner(prompt) {
+            const banner = document.createElement('div');
+            banner.style.cssText = `
+                position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white; padding: 15px 25px; border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 1000;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                max-width: 90vw; text-align: center; animation: slideDown 0.5s ease-out;
+            `;
+            
+            banner.innerHTML = `
+                <div style="margin-bottom: 10px;">📱 Install AndyLibrary on your tablet!</div>
+                <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 15px;">
+                    Offline access • Home screen icon • Full screen reading
+                </div>
+                <button onclick="installPWA()" style="
+                    background: white; color: #667eea; border: none; padding: 10px 20px;
+                    border-radius: 8px; font-weight: bold; margin-right: 10px; cursor: pointer;
+                ">📥 Install</button>
+                <button onclick="this.parentElement.remove()" style="
+                    background: transparent; color: white; border: 1px solid white;
+                    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+                ">Maybe Later</button>
+            `;
+            
+            document.body.appendChild(banner);
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (banner.parentElement) banner.remove();
+            }, 10000);
+            
+            window.installPWA = async () => {
+                if (prompt) {
+                    const result = await prompt.prompt();
+                    console.log('📱 Install prompt result:', result.outcome);
+                }
+                banner.remove();
+            };
+        }
     </script>
+    
+    <style>
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        
+        /* Tablet-optimized responsive design */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .hero-content { padding: 40px 30px; }
+            .features-grid { grid-template-columns: 1fr; gap: 20px; }
+            .feature-card { padding: 25px; }
+            .cta-button { padding: 18px 35px; font-size: 1.1rem; }
+            .project-title { font-size: 2.5rem; }
+        }
+        
+        /* Touch-friendly interactive elements */
+        @media (hover: none) and (pointer: coarse) {
+            .cta-button { min-height: 44px; min-width: 44px; }
+            .feature-card { transition: transform 0.2s; }
+            .feature-card:active { transform: scale(0.98); }
+        }
+    </style>
 </body>
 </html>

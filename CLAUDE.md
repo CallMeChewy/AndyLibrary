@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Primary Goal**: Get education into the hands of people who can least afford it
 
 **Core Values**:
+
 - **Cost Protection**: Students protected from surprise data charges via version control
 - **Offline First**: Works without internet after initial download
 - **Budget Device Friendly**: Optimized for $50 tablets with limited resources
@@ -40,6 +41,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### CRITICAL ARCHITECTURAL DECISIONS
 
 #### ✅ DO (Proven Effective)
+
 - **Use main database directly** - SQLite handles caching automatically
 - **Embed thumbnails as BLOBs** - No separate image files needed
 - **Native app deployment** - Better performance than browser-based solutions
@@ -47,6 +49,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Student choice** - Never force expensive updates
 
 #### ❌ DON'T (Over-Engineering Traps)
+
 - **Create "cache" databases** - SQLite already caches in memory efficiently
 - **Browser-based deployment** - Memory limits harm educational access
 - **Complex packet update systems** - Adds cost without student benefit
@@ -56,6 +59,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Development Philosophy
 
 #### Technical Reality Checks
+
 - **Challenge assumptions** - Question "modern" solutions that don't serve the educational mission
 - **Unix wisdom applies** - Simple tools, well combined, often outperform complex frameworks
 - **Current tech validation** - Verify recommendations match 2025 reality, not outdated blog posts
@@ -63,6 +67,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Mission-driven decisions** - Every technical choice must serve educational access
 
 #### Learning Partnership
+
 - **Stay curious** - Question complexity when simpler solutions exist
 - **Keep it honest** - Call out over-engineering before it becomes technical debt
 - **Prevent foot-shooting** - Stop reinventing solved problems or ignoring efficient solutions
@@ -200,39 +205,46 @@ Install all requirements from `requirements.txt`. The startup script validates c
 ## API Endpoints
 
 ### Core Application
+
 - `/` - BowersWorld promotional page (entry point)
 - `/docs` - FastAPI auto-generated API documentation with 40+ endpoints
 - `/api/health` - System health check
 - `/api/mode` - Current operating mode (local/gdrive)
 
 ### Authentication System
+
 - `/api/auth/register` - User registration with email verification
 - `/api/auth/login` - User authentication
 - `/api/auth/oauth/{provider}` - Social login (Google/GitHub/Facebook)
 - `/api/auth/verify-email` - Email verification endpoint
 
 ### User Setup System
+
 - `/api/setup/status` - Check user installation status
 - `/api/setup/install` - Complete user installation process
 - `/api/setup/launch` - Launch native app from user environment
 
 ### Advanced Search System (Phase 2A)
+
 - `POST /api/search/advanced` - Multi-mode search with relevance scoring
 - `GET /api/search/suggestions` - Contextual search suggestions
 - `GET /api/search/categories` - Educational categories for filtering
 
 ### User Progress Tracking (Phase 2A)
+
 - `POST /api/progress/session/start` - Start reading session tracking
 - `POST /api/progress/session/end` - End session with analytics
 - `GET /api/progress/user` - Comprehensive user progress and statistics
 - `POST /api/progress/bookmark` - Toggle bookmark status for books
 
 ### Library Core
+
 - `/api/categories` - All educational categories (26 subjects)
 - `/api/books/search` - Traditional book search
 - `/api/books/{book_id}` - Individual book details
 
 ### Web Pages
+
 - `/bowersworld.html` - Project Himalaya promotional landing
 - `/auth.html` - Registration and login interface
 - `/setup.html` - Installation progress and app launch
@@ -242,22 +254,26 @@ Access at: `http://127.0.0.1:{port}` where port is auto-detected (usually 8000).
 ## Version Control Strategy
 
 ### Student-Centric Update Philosophy
+
 - **Student choice over forced updates** - App must work gracefully with outdated databases
 - **Cost transparency** - Clear pricing for all update options ($1.02 for full 10.2MB download)
 - **Graceful degradation** - Handle missing/deprecated books without crashes
 - **Update frequency options** - Monthly ($12.24/year), Quarterly ($4.08/year), Yearly ($1.02/year), or Manual
 
 ### Implementation Approach
+
 1. **Phase 1**: Simple full database redownload with student choice
 2. **Phase 2**: Enhanced user control and update scheduling
 3. **Phase 3**: Advanced packet system only if students demand it
 
 ### Key Principle
+
 **Technical complexity should serve educational mission, not the reverse.**
 
 ## User Journey Architecture
 
 ### Complete User Workflow
+
 1. **BowersWorld Discovery**: User visits promotional page showcasing Project Himalaya
 2. **Registration Gateway**: Email/social login with mission acknowledgment and data consent
 3. **Email Verification**: Secure token-based verification with 24-hour expiry
@@ -267,12 +283,14 @@ Access at: `http://127.0.0.1:{port}` where port is auto-detected (usually 8000).
 7. **Future Access**: Simple login launches existing installation
 
 ### Multi-User Support
+
 - **OS-Specific Paths**: Windows (LocalAppData), macOS (Application Support), Linux (.local/share)
 - **User Isolation**: Each user gets separate installation directory with no conflicts
 - **Development Separation**: User environments completely isolated from development resources
 - **Cross-Platform**: Consistent behavior across Windows, macOS, and Linux
 
 ### Authentication & Security
+
 - **Email Verification**: Required for account activation with secure token system
 - **OAuth Integration**: Optional Google/GitHub/Facebook login for convenience
 - **Session Management**: JWT-style tokens with expiration and validation

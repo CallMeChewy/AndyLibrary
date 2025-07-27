@@ -1,0 +1,18 @@
+# Dockerfile for Windows EXE building
+FROM python:3.11-windowsservercore
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install pyinstaller
+
+# Copy application code
+COPY . .
+
+# Build the executable
+RUN pyinstaller --onefile --windowed your_main_script.py
+
+# The executable will be in /app/dist/

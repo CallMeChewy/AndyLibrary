@@ -1,0 +1,160 @@
+# File: deploy-pwa.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/deploy-pwa.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-27
+# Last Modified: 2025-07-27 10:58PM
+
+name: Deploy PWA to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'WebPages/**'
+      - '.github/workflows/deploy-pwa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Create PWA build directory
+      run: |
+        mkdir -p pwa-build
+        
+    - name: Copy PWA files
+      run: |
+        # Copy core PWA files
+        cp WebPages/bowersworld.html pwa-build/index.html
+        cp WebPages/manifest.json pwa-build/
+        cp WebPages/service-worker.js pwa-build/
+        
+        # Create assets directory
+        mkdir -p pwa-build/static/assets
+        mkdir -p pwa-build/static/styles
+        mkdir -p pwa-build/static/scripts
+        
+        # Copy assets if they exist
+        if [ -f "WebPages/assets/AndyLibrary.png" ]; then
+          cp WebPages/assets/AndyLibrary.png pwa-build/static/assets/
+        fi
+        
+        # Create basic CSS for PWA
+        cat > pwa-build/static/styles/pwa.css << 'EOF'
+        /* PWA-specific styles for GitHub Pages deployment */
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          margin: 0; padding: 0; 
+        }
+        
+        /* Tablet optimizations */
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .container { max-width: 90%; margin: 0 auto; }
+          .touch-target { min-height: 44px; min-width: 44px; }
+        }
+        
+        /* Loading animation for offline content */
+        .offline-indicator {
+          position: fixed; top: 10px; right: 10px;
+          background: #f39c12; color: white;
+          padding: 8px 12px; border-radius: 6px;
+          font-size: 0.8em; z-index: 1000;
+        }
+        EOF
+        
+    - name: Create offline fallback page
+      run: |
+        cat > pwa-build/offline.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>AndyLibrary - Offline</title>
+          <link rel="manifest" href="/manifest.json">
+          <meta name="theme-color" content="#3182ce">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh;">
+          <div style="max-width: 400px; margin: 0 auto;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 20px;">📚</h1>
+            <h2>You're Offline</h2>
+            <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
+              AndyLibrary is designed to work offline, but you're viewing a page that hasn't been cached yet.
+            </p>
+            <p style="margin-bottom: 30px;">
+              Connect to the internet to access the full library, then return here for offline reading.
+            </p>
+            <button onclick="window.location.reload()" style="
+              background: white; color: #667eea; border: none; padding: 15px 30px;
+              border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer;
+            ">Try Again</button>
+          </div>
+        </body>
+        </html>
+        EOF
+        
+    - name: Update service worker for GitHub Pages
+      run: |
+        # Update service worker paths for static hosting
+        sed -i 's|/static/|./static/|g' pwa-build/service-worker.js
+        sed -i 's|'"/'"'|'"./"'|g' pwa-build/service-worker.js
+        
+    - name: Create simple mock API for demo
+      run: |
+        mkdir -p pwa-build/api
+        
+        # Create basic API responses for demo
+        cat > pwa-build/api/health.json << 'EOF'
+        {
+          "status": "healthy",
+          "mode": "demo",
+          "message": "PWA Demo - Connect to full server for live data"
+        }
+        EOF
+        
+        cat > pwa-build/api/categories.json << 'EOF'
+        {
+          "categories": [
+            "Computer Science",
+            "Mathematics", 
+            "Physics",
+            "Literature",
+            "History",
+            "Educational Technology"
+          ]
+        }
+        EOF
+        
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './pwa-build'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Output deployment URL
+      run: |
+        echo "🚀 PWA deployed successfully!"
+        echo "📱 Tablet access: ${{ steps.deployment.outputs.page_url }}"
+        echo "💡 Add to home screen for full app experience"

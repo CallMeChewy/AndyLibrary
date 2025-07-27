@@ -2021,6 +2021,17 @@ async def toggle_bookmark(
 # Static file serving
 app.mount("/static", StaticFiles(directory="WebPages"), name="static")
 
+# PWA Support - Progressive Web App endpoints
+@app.get("/manifest.json")
+async def serve_manifest():
+    """Serve PWA manifest for tablet installation"""
+    return FileResponse("WebPages/manifest.json", media_type="application/json")
+
+@app.get("/service-worker.js")
+async def serve_service_worker():
+    """Serve PWA service worker for offline functionality"""
+    return FileResponse("WebPages/service-worker.js", media_type="application/javascript")
+
 # Serve main web interface - redirect to BowersWorld promotional page
 @app.get("/")
 async def serve_main_page():
