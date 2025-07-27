@@ -42,5 +42,5 @@ def get_book_count():
 if __name__ == "__main__":
     print("🚀 Simple AndyLibrary Standalone Test")
     print("📚 Database books:", get_book_count())
-    print("🌐 Starting server on http://127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print("🌐 Starting server on http://127.0.0.1:8001")
+    uvicorn.run(app, host="127.0.0.1", port=8001)

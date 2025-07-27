@@ -53,6 +53,14 @@ class StandaloneAndyLibrary:
         # Create data directory
         self.data_dir.mkdir(exist_ok=True)
         
+        # Check if running as PyInstaller bundle
+        if hasattr(sys, '_MEIPASS'):
+            # Running as EXE - WebPages should be in the bundle
+            self.webpages_dir = Path(sys._MEIPASS) / "WebPages"
+        else:
+            # Running as script - WebPages relative to parent
+            self.webpages_dir = self.app_dir / "WebPages"
+        
     def find_available_port(self, start_port=8000):
         """Find an available port starting from start_port"""
         for port in range(start_port, start_port + 100):
@@ -191,15 +199,21 @@ class StandaloneAndyLibrary:
         app = FastAPI(title="Standalone AndyLibrary", version="1.0.0")
         
         # Mount static files
-        webpages_dir = self.app_dir / "WebPages"
-        if webpages_dir.exists():
-            app.mount("/static", StaticFiles(directory=str(webpages_dir)), name="static")
+        print(f"🔍 Looking for WebPages at: {self.webpages_dir}")
+        if self.webpages_dir.exists():
+            app.mount("/static", StaticFiles(directory=str(self.webpages_dir)), name="static")
+            print("✅ WebPages directory mounted successfully")
+        else:
+            print(f"❌ WebPages directory not found at: {self.webpages_dir}")
         
         @app.get("/", response_class=HTMLResponse)
         async def root():
             """Serve the main library interface"""
-            desktop_html = webpages_dir / "desktop-library.html"
+            desktop_html = self.webpages_dir / "desktop-library.html"
+            print(f"🔍 Looking for desktop-library.html at: {desktop_html}")
+            
             if desktop_html.exists():
+                print("✅ Found desktop-library.html")
                 with open(desktop_html, 'r', encoding='utf-8') as f:
                     content = f.read()
                     # Modify title for standalone version
@@ -208,7 +222,9 @@ class StandaloneAndyLibrary:
                         "AndyLibrary - Standalone Preview"
                     )
                     return content
-            return "<h1>Library interface not found</h1>"
+            else:
+                print("❌ desktop-library.html not found")
+                return f"<h1>Library interface not found</h1><p>Searched: {desktop_html}</p>"
         
         @app.get("/api/categories")
         async def get_categories():

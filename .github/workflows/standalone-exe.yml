@@ -35,7 +35,7 @@ jobs:
     - name: Build Standalone EXE
       working-directory: ./Standalone
       run: |
-        pyinstaller --onefile --console StandaloneAndyLibrary.py --name AndyLibrary-Standalone
+        pyinstaller standalone-with-webpages.spec --clean --noconfirm
         
     - name: Upload Standalone EXE
       uses: actions/upload-artifact@v4

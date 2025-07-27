@@ -1,0 +1,10 @@
+FROM python:3.11-windowsservercore-1809
+
+WORKDIR /app
+COPY requirements-standalone.txt .
+RUN pip install -r requirements-standalone.txt
+
+COPY . .
+RUN pyinstaller standalone-library.spec --clean --onefile
+
+CMD ["echo", "Build complete"]
