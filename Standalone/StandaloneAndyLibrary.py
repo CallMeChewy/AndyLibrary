@@ -112,8 +112,8 @@ class StandaloneAndyLibrary:
             if self.download_from_google_drive():
                 return True
                 
-        # Create minimal database if none found
-        print("⚠️ No source database found, creating minimal test database...")
+        # Create comprehensive test database if none found
+        print("⚠️ No source database found, creating comprehensive test database...")
         try:
             conn = sqlite3.connect(str(self.database_path))
             cursor = conn.cursor()
@@ -127,13 +127,29 @@ class StandaloneAndyLibrary:
                     thumbnail BLOB
                 )
             """)
-            cursor.execute("""
+            
+            # Insert multiple test books across different categories
+            test_books = [
+                (1, "Introduction to Computer Science", "John Smith", "Computer Science", 2048000),
+                (2, "Advanced Mathematics", "Jane Doe", "Mathematics", 1536000),
+                (3, "World History", "Robert Johnson", "History", 3072000),
+                (4, "Biology Fundamentals", "Maria Garcia", "Science", 2560000),
+                (5, "English Literature", "David Wilson", "Literature", 1792000),
+                (6, "Physics Principles", "Sarah Brown", "Science", 2304000),
+                (7, "Art History", "Michael Davis", "Arts", 4096000),
+                (8, "Programming in Python", "Lisa Anderson", "Computer Science", 1280000),
+                (9, "Calculus and Analysis", "James Miller", "Mathematics", 1920000),
+                (10, "Geography of the World", "Emily Taylor", "Geography", 2816000)
+            ]
+            
+            cursor.executemany("""
                 INSERT INTO books (id, title, author, category, file_size) 
-                VALUES (1, 'Test Book - Database Not Found', 'AndyLibrary System', 'System', 1024)
-            """)
+                VALUES (?, ?, ?, ?, ?)
+            """, test_books)
+            
             conn.commit()
             conn.close()
-            print("✅ Created minimal test database")
+            print("✅ Created comprehensive test database with 10 books across 7 categories")
             return True
         except Exception as e:
             print(f"❌ Failed to create test database: {e}")
