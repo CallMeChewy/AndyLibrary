@@ -30,7 +30,7 @@ jobs:
     - name: Install dependencies
       working-directory: ./Standalone
       run: |
-        pip install pyinstaller fastapi uvicorn aiofiles
+        pip install pyinstaller fastapi uvicorn aiofiles google-auth google-auth-oauthlib google-api-python-client
         
     - name: Build Standalone EXE
       working-directory: ./Standalone

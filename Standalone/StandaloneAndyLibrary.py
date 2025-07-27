@@ -27,6 +27,17 @@ from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
+# Google Drive integration
+try:
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaIoBaseDownload
+    import io
+    GOOGLE_DRIVE_AVAILABLE = True
+except ImportError:
+    GOOGLE_DRIVE_AVAILABLE = False
+
 class StandaloneAndyLibrary:
     """Simplified standalone library system"""
     
@@ -75,7 +86,10 @@ class StandaloneAndyLibrary:
             self.app_dir / "Data" / "Databases" / "MyLibrary.db",
             Path("/home/herb/Desktop/AndyLibrary/Data/Databases/MyLibrary.db"),
             self.script_dir.parent / "Data" / "Databases" / "MyLibrary.db",
-            Path("../Data/Databases/MyLibrary.db").resolve()
+            Path("../Data/Databases/MyLibrary.db").resolve(),
+            # Check if database is bundled with executable
+            self.script_dir / "MyLibrary.db",
+            Path("MyLibrary.db").resolve()
         ]
         
         for source_db in possible_paths:
@@ -84,12 +98,62 @@ class StandaloneAndyLibrary:
                 shutil.copy2(source_db, self.database_path)
                 return True
                 
-        # Could add Google Drive download here if needed
-        print("❌ Source database not found")
-        print("🔍 Searched locations:")
-        for path in possible_paths:
-            print(f"   - {path} {'✅' if path.exists() else '❌'}")
-        return False
+        # Try Google Drive download if available
+        if GOOGLE_DRIVE_AVAILABLE:
+            print("🌐 Attempting Google Drive download...")
+            if self.download_from_google_drive():
+                return True
+                
+        # Create minimal database if none found
+        print("⚠️ No source database found, creating minimal test database...")
+        try:
+            conn = sqlite3.connect(str(self.database_path))
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS books (
+                    id INTEGER PRIMARY KEY,
+                    title TEXT,
+                    author TEXT,
+                    category TEXT,
+                    file_size INTEGER,
+                    thumbnail BLOB
+                )
+            """)
+            cursor.execute("""
+                INSERT INTO books (id, title, author, category, file_size) 
+                VALUES (1, 'Test Book - Database Not Found', 'AndyLibrary System', 'System', 1024)
+            """)
+            conn.commit()
+            conn.close()
+            print("✅ Created minimal test database")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to create test database: {e}")
+            return False
+
+    def download_from_google_drive(self):
+        """Download database from Google Drive"""
+        try:
+            # Google Drive file ID for MyLibrary.db (replace with actual ID)
+            file_id = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"  # This is a placeholder
+            
+            # Simple download using direct Google Drive link
+            download_url = f"https://drive.google.com/uc?id={file_id}&export=download"
+            
+            print(f"📥 Downloading database from Google Drive...")
+            urllib.request.urlretrieve(download_url, self.database_path)
+            
+            # Verify the downloaded file
+            if self.database_path.exists() and self.database_path.stat().st_size > 1000:
+                print("✅ Database downloaded successfully from Google Drive")
+                return True
+            else:
+                print("❌ Downloaded file appears to be invalid")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Google Drive download failed: {e}")
+            return False
     
     def setup_database(self):
         """Setup database for standalone use"""
