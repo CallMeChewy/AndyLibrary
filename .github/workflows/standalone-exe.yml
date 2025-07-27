@@ -18,10 +18,14 @@ jobs:
         
     - name: Check Standalone directory
       run: |
-        echo "Checking Standalone directory contents:"
-        dir Standalone
-        echo "Looking for StandaloneAndyLibrary.py:"
-        if exist Standalone\StandaloneAndyLibrary.py (echo "File found") else (echo "File NOT found")
+        Write-Host "Checking Standalone directory contents:"
+        Get-ChildItem Standalone
+        Write-Host "Looking for StandaloneAndyLibrary.py:"
+        if (Test-Path "Standalone\StandaloneAndyLibrary.py") {
+          Write-Host "File found"
+        } else {
+          Write-Host "File NOT found"
+        }
         
     - name: Install dependencies
       working-directory: ./Standalone
