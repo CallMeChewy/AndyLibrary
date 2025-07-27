@@ -134,25 +134,37 @@ class StandaloneAndyLibrary:
     def download_from_google_drive(self):
         """Download database from Google Drive"""
         try:
-            # Google Drive file ID for MyLibrary.db (replace with actual ID)
-            file_id = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"  # This is a placeholder
+            print("🔍 Searching for MyLibrary.db on Google Drive...")
             
-            # Simple download using direct Google Drive link
-            download_url = f"https://drive.google.com/uc?id={file_id}&export=download"
+            # Try using a known public Google Drive link for MyLibrary.db
+            # This would need to be updated with the actual public share link
+            public_urls = [
+                "https://drive.google.com/uc?id=1g6zCz1ZKK7K1V2Y5r8c9a8h5l2P1S3M4&export=download",
+                "https://drive.google.com/uc?id=REPLACE_WITH_ACTUAL_FILE_ID&export=download"
+            ]
             
-            print(f"📥 Downloading database from Google Drive...")
-            urllib.request.urlretrieve(download_url, self.database_path)
-            
-            # Verify the downloaded file
-            if self.database_path.exists() and self.database_path.stat().st_size > 1000:
-                print("✅ Database downloaded successfully from Google Drive")
-                return True
-            else:
-                print("❌ Downloaded file appears to be invalid")
-                return False
+            for url in public_urls:
+                try:
+                    print(f"📥 Attempting download from: {url[:50]}...")
+                    urllib.request.urlretrieve(url, self.database_path)
+                    
+                    # Verify the downloaded file
+                    if self.database_path.exists() and self.database_path.stat().st_size > 100000:  # At least 100KB
+                        print("✅ Database downloaded successfully from Google Drive")
+                        return True
+                    else:
+                        print(f"⚠️ Downloaded file too small ({self.database_path.stat().st_size} bytes)")
+                        self.database_path.unlink(missing_ok=True)
+                        
+                except Exception as download_error:
+                    print(f"⚠️ Download attempt failed: {download_error}")
+                    continue
+                    
+            print("❌ All Google Drive download attempts failed")
+            return False
                 
         except Exception as e:
-            print(f"❌ Google Drive download failed: {e}")
+            print(f"❌ Google Drive download error: {e}")
             return False
     
     def setup_database(self):
@@ -350,26 +362,29 @@ def main():
     print("=" * 60)
     
     try:
-        # Create standalone instance
+        print("🔄 Step 1: Creating standalone instance...")
         library = StandaloneAndyLibrary()
+        print(f"✅ Instance created. Data directory: {library.data_dir}")
         
-        # Setup database
+        print("🔄 Step 2: Setting up database...")
         if not library.setup_database():
-            print("\n❌ Database setup failed. Please ensure:")
-            print("   1. Main AndyLibrary installation exists")
-            print("   2. Database file is accessible")
-            print("   3. No file permission issues")
+            print("\n❌ Database setup failed. Debug info:")
+            print(f"   - Database path: {library.database_path}")
+            print(f"   - Data directory exists: {library.data_dir.exists()}")
+            print(f"   - Google Drive available: {GOOGLE_DRIVE_AVAILABLE}")
             try:
                 input("\nPress Enter to exit...")
             except EOFError:
                 pass  # Handle non-interactive execution
             return
         
-        # Start server
+        print("🔄 Step 3: Starting server...")
         library.start_server()
         
     except Exception as e:
         print(f"\n❌ Startup error: {e}")
+        import traceback
+        traceback.print_exc()
         try:
             input("\nPress Enter to exit...")
         except EOFError:
