@@ -16,6 +16,7 @@ const THUMBNAIL_CACHE = 'andylibrary-thumbnails-v1.0.0';
 // Core files for offline functionality
 const CORE_FILES = [
   '/',
+  '/pdf-reader.html',
   '/static/assets/AndyLibrary.png',
   '/static/styles/desktop-library.css',
   '/static/scripts/desktop-library.js',
@@ -72,7 +73,10 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
   // Handle different types of requests
-  if (url.pathname.startsWith('/api/thumbnails/')) {
+  if (url.pathname.startsWith('/api/books/') && url.pathname.endsWith('/pdf')) {
+    // PDF files: Aggressive caching for offline reading
+    event.respondWith(handlePdfRequest(event.request));
+  } else if (url.pathname.startsWith('/api/thumbnails/')) {
     // Thumbnails: Cache first, network fallback
     event.respondWith(handleThumbnailRequest(event.request));
   } else if (url.pathname.startsWith('/api/')) {
@@ -83,6 +87,42 @@ self.addEventListener('fetch', event => {
     event.respondWith(handleStaticRequest(event.request));
   }
 });
+
+/**
+ * Handle PDF requests with maximum caching for offline reading
+ * Educational priority: PDFs are large files - cache aggressively for cost protection
+ */
+async function handlePdfRequest(request) {
+  const PDF_CACHE = 'andylibrary-pdfs-v1.0.0';
+  
+  try {
+    const cache = await caches.open(PDF_CACHE);
+    const cached = await cache.match(request);
+    
+    if (cached) {
+      console.log('📖 Serving cached PDF for offline reading');
+      return cached;
+    }
+    
+    // Fetch and cache new PDF
+    console.log('📥 Downloading PDF for offline access...');
+    const response = await fetch(request);
+    
+    if (response.ok) {
+      console.log('📖 Caching PDF for offline reading');
+      cache.put(request, response.clone());
+    }
+    
+    return response;
+    
+  } catch (error) {
+    console.error('❌ PDF request failed:', error);
+    return new Response('PDF unavailable offline', { 
+      status: 503,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
 
 /**
  * Handle thumbnail requests with aggressive caching

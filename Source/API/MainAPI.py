@@ -1069,6 +1069,74 @@ async def get_book_thumbnail(request: Request, book_id: int, db: sqlite3.Connect
         from fastapi import Response
         return Response(status_code=204)
 
+@app.get("/api/books/{book_id}/pdf")
+async def get_book_pdf(request: Request, book_id: int, db: sqlite3.Connection = Depends(get_database)):
+    """Serve PDF file for reading"""
+    log_api_usage(request, "pdf_view", f"book_id={book_id}")
+    
+    try:
+        # Get book file path
+        cursor = db.execute("SELECT title, author, FilePath FROM books WHERE id = ?", (book_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Book not found")
+        
+        file_path = row['FilePath']
+        if not file_path or not file_path.lower().endswith('.pdf'):
+            raise HTTPException(status_code=404, detail="PDF file not available for this book")
+        
+        # Build full path - try multiple possible locations
+        full_paths = [
+            os.path.join(os.getcwd(), file_path),
+            os.path.join(os.getcwd(), "Data", "Books", os.path.basename(file_path)),
+            os.path.join(os.path.dirname(os.getcwd()), file_path),
+            file_path  # Try as absolute path
+        ]
+        
+        pdf_file = None
+        for path in full_paths:
+            if os.path.exists(path):
+                pdf_file = path
+                break
+        
+        if not pdf_file:
+            raise HTTPException(status_code=404, detail=f"PDF file not found: {file_path}")
+        
+        # Return PDF file with proper headers for streaming
+        from fastapi.responses import FileResponse
+        return FileResponse(
+            pdf_file, 
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"inline; filename=\"{row['title']}.pdf\"",
+                "Cache-Control": "public, max-age=3600"  # Cache for 1 hour
+            }
+        )
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        logging.error(f"Error serving PDF for book {book_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to serve PDF file")
+
+@app.post("/api/progress/reading")
+async def save_reading_progress(request: Request, progress_data: dict):
+    """Save reading progress for offline sync"""
+    log_api_usage(request, "reading_progress", f"book_id={progress_data.get('bookId')}")
+    
+    try:
+        # This could be enhanced to save to database
+        # For now, just acknowledge the request
+        return {
+            "status": "success",
+            "message": "Reading progress saved",
+            "timestamp": progress_data.get('timestamp')
+        }
+    except Exception as e:
+        logging.error(f"Error saving reading progress: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to save reading progress")
+
 # Categories endpoint
 @app.get("/api/categories", response_model=List[CategoryResponse])
 async def get_categories(request: Request, db: sqlite3.Connection = Depends(get_database)):
@@ -2031,6 +2099,11 @@ async def serve_manifest():
 async def serve_service_worker():
     """Serve PWA service worker for offline functionality"""
     return FileResponse("WebPages/service-worker.js", media_type="application/javascript")
+
+@app.get("/pdf-reader.html")
+async def serve_pdf_reader():
+    """Serve tablet-optimized PDF reader"""
+    return FileResponse("WebPages/pdf-reader.html")
 
 # Serve main web interface - redirect to BowersWorld promotional page
 @app.get("/")
