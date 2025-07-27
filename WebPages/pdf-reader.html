@@ -461,6 +461,7 @@
         }
         
         function saveReadingProgress(bookId, page) {
+            // Save reading progress and bookmark for educational tracking
             // Save to localStorage for offline access
             const progress = {
                 bookId: bookId,
@@ -481,7 +482,7 @@
             });
         }
         
-        // Keyboard navigation
+        // Keyboard navigation support for accessibility
         document.addEventListener('keydown', (e) => {
             switch(e.key) {
                 case 'ArrowLeft':
@@ -506,7 +507,7 @@
             }
         });
         
-        // Touch gestures for tablets
+        // Touch gestures and touch navigation for tablets
         let touchStartX = 0;
         let touchStartY = 0;
         

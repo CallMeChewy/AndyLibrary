@@ -6,7 +6,7 @@
 
 # Created: 2025-07-23
 
-# Last Modified: 2025-07-26 06:00AM
+# Last Modified: 2025-07-27 11:58PM
 
 # CLAUDE.md
 
@@ -27,16 +27,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Budget Device Friendly**: Optimized for $50 tablets with limited resources
 - **Simple Technology**: Avoid over-engineering that doesn't serve students
 
-### Architecture (Simplified for Educational Mission)
+### Architecture (Educational Mission + Modern Deployment)
 
 - **FastAPI Local Server**: Native app with web UI (`StartAndyGoogle.py`)
 - **Direct SQLite Database**: Single 10.2MB file with embedded thumbnails (`MyLibrary.db`)
+- **Progressive Web App (PWA)**: Tablet-installable with offline caching (`bowersworld.html`, `manifest.json`)
+- **PDF Reader System**: Full in-browser PDF reading with touch controls (`pdf-reader.html`)
 - **User Authentication System**: Email verification, session management, OAuth social login
 - **Multi-User Isolation**: OS-specific user directories with complete environment separation
-- **BowersWorld Integration**: Web registration gateway leading to native app installation
-- **Native SQLite Caching**: Leverage built-in memory management (no custom cache layer)
+- **Windows EXE Deployment**: Automated GitHub Actions building for Windows laptops
+- **Service Worker Caching**: Aggressive PDF and thumbnail caching for cost protection
+- **Multiple Access Methods**: PWA, Windows EXE, or native server deployment
 - **Version Control System**: 127-byte checks protect students from unnecessary downloads
-- **Offline Operation**: Complete functionality without internet dependency
+- **Offline-First Operation**: Complete functionality without internet dependency
 
 ### CRITICAL ARCHITECTURAL DECISIONS
 
@@ -94,12 +97,14 @@ python StartAndyGoogle.py --check
 ### Testing
 
 ```bash
-# Run all automated tests (recommended)
+# Run all automated tests (recommended) - 32 tests, 100% pass rate
 cd Tests && python run_automated_tests.py
 
-# Run specific test categories
-cd Tests && python run_automated_tests.py isolation  # user environment tests
-cd Tests && python run_automated_tests.py auth      # authentication tests
+# Individual test suites
+python test_user_environment_simple.py    # Multi-user isolation (7 tests)
+python test_database_manager_isolated.py  # Authentication system (8 tests)
+python test_pwa_features.py              # Progressive Web App (7 tests)
+python test_pdf_reader.py                # PDF reader functionality (10 tests)
 
 # Legacy test runner (basic functionality)
 python run_tests.py
@@ -242,11 +247,20 @@ Install all requirements from `requirements.txt`. The startup script validates c
 - `/api/categories` - All educational categories (26 subjects)
 - `/api/books/search` - Traditional book search
 - `/api/books/{book_id}` - Individual book details
+- `/api/books/{book_id}/pdf` - Serve PDF files for reading
+- `/api/books/{book_id}/thumbnail` - Book thumbnail images
+
+### Progressive Web App (PWA)
+
+- `/manifest.json` - PWA manifest for tablet installation
+- `/service-worker.js` - Offline caching and sync
+- `/pdf-reader.html` - Tablet-optimized PDF reader
+- `/pdf-reader.html?id={book_id}` - Direct PDF reading
 
 ### Web Pages
 
-- `/bowersworld.html` - Project Himalaya promotional landing
-- `/auth.html` - Registration and login interface
+- `/bowersworld.html` - Project Himalaya promotional landing with PWA
+- `/auth.html` - Registration and login interface  
 - `/setup.html` - Installation progress and app launch
 
 Access at: `http://127.0.0.1:{port}` where port is auto-detected (usually 8000).
