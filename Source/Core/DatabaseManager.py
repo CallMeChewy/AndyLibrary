@@ -38,6 +38,9 @@ class DatabaseManager:
         self.Connection: Optional[sqlite3.Connection] = None
         self.Logger = logging.getLogger(self.__class__.__name__)
         
+        # Load server configuration for URL generation
+        self._LoadServerConfig()
+        
         # Initialize EmailManager for production email services
         try:
             from .EmailManager import EmailManager
@@ -48,12 +51,30 @@ class DatabaseManager:
         
         # Ensure database directory exists
         self.EnsureDatabaseDirectory()
+    
+    def _LoadServerConfig(self):
+        """Load server configuration for URL generation"""
+        try:
+            config_path = Path("Config/andygoogle_config.json")
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    self.ServerHost = config.get("server_host", "127.0.0.1")
+                    self.ServerPort = config.get("server_port", 8080)
+            else:
+                # Default values if config not found
+                self.ServerHost = "127.0.0.1"
+                self.ServerPort = 8080
+        except Exception as e:
+            self.Logger.warning(f"Failed to load server config: {e}")
+            self.ServerHost = "127.0.0.1"
+            self.ServerPort = 8080
         
         # Connect and initialize
         if self.Connect():
             self.InitializeUserTables()
         
-        self.Logger.debug(f"DatabaseManager v2.1 initialized for: {DatabasePath}")
+        self.Logger.debug(f"DatabaseManager v2.1 initialized for: {self.DatabasePath}")
 
     def EnsureDatabaseDirectory(self):
         """Ensure the database directory exists"""
@@ -281,7 +302,7 @@ class DatabaseManager:
                     # Fall through to mock email for development
             
             # Mock email for development/testing
-            VerificationUrl = f"http://127.0.0.1:8083/api/auth/verify-email?token={VerificationToken}"
+            VerificationUrl = f"http://{self.ServerHost}:{self.ServerPort}/api/auth/verify-email?token={VerificationToken}"
             
             self.Logger.info(f"📧 Email Verification Required (MOCK)")
             self.Logger.info(f"   User: {Email}")

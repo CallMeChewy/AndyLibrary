@@ -2,7 +2,7 @@
 # Path: /home/herb/Desktop/AndyLibrary/Config/social_auth_config.json
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-25
-# Last Modified: 2025-07-25 10:20AM
+# Last Modified: 2025-07-28 06:20AM
 
 {
   "oauth_providers": {
@@ -14,8 +14,8 @@
       "token_url": "https://oauth2.googleapis.com/token",
       "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
       "scope": "openid email profile",
-      "redirect_uri": "http://localhost:8081/api/auth/oauth/google/callback",
-      "enabled": false,
+      "redirect_uri": "http://127.0.0.1:8080/api/auth/oauth/google/callback",
+      "enabled": true,
       "test_mode": true
     },
     "github": {
@@ -26,8 +26,8 @@
       "token_url": "https://github.com/login/oauth/access_token",
       "user_info_url": "https://api.github.com/user",
       "scope": "user:email",
-      "redirect_uri": "http://localhost:8081/api/auth/oauth/github/callback",
-      "enabled": false,
+      "redirect_uri": "http://127.0.0.1:8080/api/auth/oauth/github/callback",
+      "enabled": true,
       "test_mode": true
     },
     "facebook": {
@@ -38,8 +38,8 @@
       "token_url": "https://graph.facebook.com/v18.0/oauth/access_token",
       "user_info_url": "https://graph.facebook.com/me?fields=id,name,email",
       "scope": "email",
-      "redirect_uri": "http://localhost:8081/api/auth/oauth/facebook/callback",
-      "enabled": false,
+      "redirect_uri": "http://127.0.0.1:8080/api/auth/oauth/facebook/callback",
+      "enabled": true,
       "test_mode": true
     }
   },

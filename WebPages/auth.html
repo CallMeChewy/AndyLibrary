@@ -505,7 +505,7 @@
                 </div>
             </div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)">
+            <form id="loginForm" onsubmit="handleLogin(event); return false;" action="javascript:void(0)">
                 <div class="form-group">
                     <label class="form-label" for="login-email">Email Address</label>
                     <input type="email" id="login-email" class="form-input" required>
@@ -771,12 +771,15 @@
         }
 
         async function handleLogin(event) {
+            console.log('🔵 handleLogin called - JavaScript working!');
             event.preventDefault();
+            console.log('🔵 Form submission prevented');
             clearMessages();
             setLoading('login', true);
 
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+            console.log('🔵 Attempting login for:', email);
 
             try {
                 const response = await fetch('/api/auth/login', {
@@ -791,8 +794,10 @@
                 });
 
                 const data = await response.json();
+                console.log('🔵 Login response:', response.status, data);
 
                 if (response.ok) {
+                    console.log('🟢 Login successful! Storing tokens and redirecting...');
                     // Store authentication token
                     localStorage.setItem('auth_token', data.session_token);
                     localStorage.setItem('refresh_token', data.refresh_token);
@@ -800,9 +805,10 @@
 
                     showSuccess(data.message);
                     
-                    // Redirect to setup page to install AndyLibrary
+                    // Redirect to library after successful login
+                    console.log('🔵 Redirecting to /library in 1 second...');
                     setTimeout(() => {
-                        window.location.href = '/setup.html';
+                        window.location.href = '/library';
                     }, 1000);
                 } else {
                     if (data.verification_required) {
@@ -812,9 +818,10 @@
                     }
                 }
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('🔴 Login error:', error);
                 showError('Network error. Please check your connection and try again.');
             } finally {
+                console.log('🔵 Login attempt completed, stopping loading...');
                 setLoading('login', false);
             }
         }
@@ -1081,10 +1088,35 @@
 
         // Check if user is already authenticated
         window.addEventListener('load', function() {
+            console.log('🔵 Page loaded, checking form handlers...');
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                console.log('🟢 Login form found:', loginForm);
+                console.log('🔵 Form onsubmit attribute:', loginForm.getAttribute('onsubmit'));
+            } else {
+                console.error('🔴 Login form NOT found!');
+            }
             const authToken = localStorage.getItem('auth_token');
             if (authToken) {
-                // User is already logged in, redirect to setup/library
-                window.location.href = '/setup.html';
+                // Validate token before redirecting
+                fetch('/api/auth/profile', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                }).then(response => {
+                    if (response.ok) {
+                        // Valid token, redirect to library
+                        window.location.href = '/library';
+                    } else {
+                        // Invalid token, clear it and stay on login page
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('refresh_token');
+                        localStorage.removeItem('user_info');
+                    }
+                }).catch(() => {
+                    // Network error, clear token and stay on login page
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user_info');
+                });
             }
 
             // Load social login buttons

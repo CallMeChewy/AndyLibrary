@@ -2,7 +2,7 @@
 # Path: /home/herb/Desktop/AndyLibrary/Source/Core/SocialAuthManager.py
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-25
-# Last Modified: 2025-07-25 07:29AM
+# Last Modified: 2025-07-28 12:42AM
 
 """
 Social Authentication Manager for AndyLibrary
@@ -18,6 +18,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urlencode
 import requests
 from datetime import datetime, timedelta
+from pathlib import Path
 
 class SocialAuthManager:
     """
@@ -26,6 +27,9 @@ class SocialAuthManager:
     
     def __init__(self):
         self.Logger = logging.getLogger(__name__)
+        
+        # Load server configuration for URL generation
+        self._LoadServerConfig()
         
         # OAuth Provider Configurations
         self.OAuthProviders = {
@@ -58,8 +62,26 @@ class SocialAuthManager:
             }
         }
         
-        # Base redirect URI (will be updated with actual host)
-        self.BaseRedirectUri = "http://127.0.0.1:8083/api/auth/oauth/callback"
+        # Base redirect URI using server configuration (matches Google Cloud Console)
+        self.BaseRedirectUri = f"http://{self.ServerHost}:{self.ServerPort}"
+    
+    def _LoadServerConfig(self):
+        """Load server configuration for URL generation"""
+        try:
+            config_path = Path("Config/andygoogle_config.json")
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    self.ServerHost = config.get("server_host", "127.0.0.1")
+                    self.ServerPort = config.get("server_port", 8080)
+            else:
+                # Default values if config not found
+                self.ServerHost = "127.0.0.1"
+                self.ServerPort = 8080
+        except Exception as e:
+            self.Logger.warning(f"Failed to load server config: {e}")
+            self.ServerHost = "127.0.0.1"
+            self.ServerPort = 8080
     
     def GetAvailableProviders(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -109,10 +131,10 @@ class SocialAuthManager:
             # Build authorization URL
             auth_params = {
                 'client_id': config['client_id'],
-                'redirect_uri': f"{redirect_uri}/{provider}",
+                'redirect_uri': redirect_uri,
                 'scope': config['scope'],
                 'response_type': 'code',
-                'state': state
+                'state': f"{provider}:{state}"  # Encode provider in state for callback identification
             }
             
             auth_url = f"{config['auth_url']}?{urlencode(auth_params)}"
@@ -147,7 +169,7 @@ class SocialAuthManager:
                 'client_id': config['client_id'],
                 'client_secret': config['client_secret'],
                 'code': code,
-                'redirect_uri': f"{redirect_uri}/{provider}"
+                'redirect_uri': redirect_uri
             }
             
             if provider == 'google':

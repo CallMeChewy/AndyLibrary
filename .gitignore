@@ -1,8 +1,8 @@
 # File: .gitignore
-# Path: AndyLibrary/.gitignore
+# Path: /home/herb/Desktop/AndyLibrary/.gitignore
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-23
-# Last Modified: 2025-07-23  05:12PM
+# Last Modified: 2025-07-28 01:45PM
 """
 Description: Python .gitignore template for Project_Startup generated projects
 """
@@ -328,13 +328,45 @@ node_modules/
 **/Covers/*
 **/Thumbs/*
 
-# Project-specific exclusions
+# Project-specific exclusions - SECURITY CRITICAL
 anderson-library-service-key.json
 config/
 secrets/
 
+# OAuth and Authentication - NEVER COMMIT
 Config/google_credentials.json
 Config/google_token.json
+Config/email_config.json
+Config/oauth_security_config.json
+Config/social_auth_config.json
+Config/oauth_test_accounts.json
+client_secret_*.json
 *.token
 *.credentials
-.env
+*.secret
+.env*
+!.env.template
+
+# Database and Local Data
+Data/Local/
+*.db
+*.sqlite*
+MyLibrary.db
+cached_library.db
+
+# Session and Recovery Files
+SESSION_RECOVERY.md
+server.log
+*.log
+
+# Large and Binary Files
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.tmp
+*.bak
+
+# User Environment Directories
+UserEnvironments/
+user_data/
