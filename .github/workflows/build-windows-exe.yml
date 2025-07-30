@@ -55,7 +55,7 @@ jobs:
         
     - name: Build Windows executable
       run: |
-        python -m PyInstaller --clean --noconfirm build_windows_exe.spec
+        python -m PyInstaller --onefile --windowed --name AndyLibrary --add-data "Source;Source" --add-data "WebPages;WebPages" --add-data "Data;Data" --add-data "Config;Config" AndyLibraryStandalone.py
         
     - name: Verify build
       run: |
