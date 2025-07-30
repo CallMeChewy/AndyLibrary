@@ -22,14 +22,14 @@ jobs:
         
     - name: Install minimal deps
       run: |
-        pip install pyinstaller fastapi uvicorn
+        pip install pyinstaller fastapi uvicorn requests
         
-    - name: Build simple EXE
+    - name: Build Grandson's Library EXE
       run: |
-        pyinstaller --onefile --console StartAndyGoogle.py --name AndyLibrary-Quick
+        pyinstaller --onefile --console Standalone/StandaloneAndyLibrary.py --name GrandsonLibrary-Windows
         
     - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
-        name: AndyLibrary-Quick-Windows
-        path: dist/AndyLibrary-Quick.exe
+        name: GrandsonLibrary-Windows
+        path: dist/GrandsonLibrary-Windows.exe
