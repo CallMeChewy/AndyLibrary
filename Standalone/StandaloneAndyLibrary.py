@@ -973,12 +973,32 @@ class GrandsonLibrary:
             print("\n👋 Library closed. See you next time!")
         except Exception as e:
             print(f"\n❌ Library error: {e}")
-            input("Press Enter to exit...")
+            print("\nFull error details:")
+            import traceback
+            traceback.print_exc()
+            print("\n" + "="*50)
+            print("The library encountered an error.")
+            print("Press Enter to close...")
+            input()
 
 def main():
-    """Main entry point"""
-    library = GrandsonLibrary()
-    library.start_library()
+    """Main entry point with error handling for Windows"""
+    try:
+        print("🎓 GRANDSON'S LIBRARY STARTING...")
+        print("If you see this message, the EXE is working!")
+        print("=" * 50)
+        
+        library = GrandsonLibrary()
+        library.start_library()
+        
+    except Exception as e:
+        print(f"\n❌ ERROR OCCURRED: {e}")
+        print("\nFull error details:")
+        import traceback
+        traceback.print_exc()
+        print("\n" + "="*50)
+        print("Press Enter to close this window...")
+        input()
 
 if __name__ == "__main__":
     main()
