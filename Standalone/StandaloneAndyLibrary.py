@@ -436,6 +436,26 @@ class GrandsonLibrary:
         else:
             print(f"⚠️ Web interface not found at: {self.webpages_dir}")
         
+        # Add favicon endpoint
+        @app.get("/favicon.ico")
+        async def favicon():
+            """Serve favicon"""
+            favicon_path = self.webpages_dir / "favicon.ico"
+            if favicon_path.exists():
+                return FileResponse(str(favicon_path))
+            else:
+                raise HTTPException(status_code=404, detail="Favicon not found")
+        
+        # Add direct asset access for compatibility
+        @app.get("/BowersWorld.png")
+        async def bowers_world_png():
+            """Serve BowersWorld.png for compatibility"""
+            asset_path = self.webpages_dir / "assets" / "BowersWorld.png"
+            if asset_path.exists():
+                return FileResponse(str(asset_path))
+            else:
+                raise HTTPException(status_code=404, detail="Asset not found")
+        
         @app.get("/", response_class=HTMLResponse)
         async def library_home():
             """Serve setup page or library interface"""
@@ -520,7 +540,7 @@ class GrandsonLibrary:
                 cursor.execute("SELECT DISTINCT category FROM books WHERE category IS NOT NULL ORDER BY category")
                 categories = [row[0] for row in cursor.fetchall()]
                 conn.close()
-                return {"categories": categories}
+                return categories  # Return array directly for JavaScript .sort() compatibility
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
         
@@ -686,6 +706,39 @@ class GrandsonLibrary:
                 "grandpa_name": self.grandpa_name,
                 "database_available": self.database_path.exists(),
                 "books_count": self.get_book_count() if self.database_path.exists() else 0
+            }
+        
+        @app.get("/api/database/info")
+        async def database_info():
+            """Get database information for enhanced interface"""
+            try:
+                if not self.database_path.exists():
+                    return {"error": "Database not found", "books_count": 0}
+                
+                conn = sqlite3.connect(str(self.database_path))
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM books")
+                count = cursor.fetchone()[0]
+                conn.close()
+                
+                return {
+                    "status": "connected",
+                    "books_count": count,
+                    "database_path": str(self.database_path),
+                    "last_updated": datetime.fromtimestamp(self.database_path.stat().st_mtime).isoformat()
+                }
+            except Exception as e:
+                return {"error": str(e), "books_count": 0}
+        
+        @app.get("/api/mode")
+        async def get_mode():
+            """Get application mode for enhanced interface"""
+            return {
+                "mode": "standalone",
+                "title": f"{self.grandpa_name}'s Educational Library", 
+                "subtitle": "Educational Books for Learning",
+                "authentication_required": False,
+                "auto_download": True
             }
         
         return app
