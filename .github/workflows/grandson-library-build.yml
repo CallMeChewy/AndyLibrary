@@ -48,23 +48,10 @@ jobs:
           Write-Host "⚠️ Database not found - using demo library"
         }
         
-    - name: 🔧 Build directly with PyInstaller
+    - name: 🔧 Build directly with PyInstaller  
+      shell: cmd
       run: |
-        pyinstaller --onefile --console --name "GrandsonLibrary" ^
-          --add-data "Data/Databases/MyLibrary.db;." ^
-          --add-data "WebPages;WebPages" ^
-          --hidden-import "uvicorn.protocols.websockets.auto" ^
-          --hidden-import "uvicorn.protocols.http.auto" ^
-          --hidden-import "uvicorn.lifespan.on" ^
-          --hidden-import "uvicorn.lifespan.off" ^
-          --hidden-import "fastapi.routing" ^
-          --hidden-import "fastapi.responses" ^
-          --hidden-import "fastapi.staticfiles" ^
-          --hidden-import "requests" ^
-          --hidden-import "sqlite3" ^
-          --hidden-import "threading" ^
-          --hidden-import "webbrowser" ^
-          Standalone/GrandsonLibrary.py
+        pyinstaller --onefile --console --name "GrandsonLibrary" --add-data "Data/Databases/MyLibrary.db;." --add-data "WebPages;WebPages" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "uvicorn.lifespan.on" --hidden-import "uvicorn.lifespan.off" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" --hidden-import "requests" --hidden-import "sqlite3" --hidden-import "threading" --hidden-import "webbrowser" Standalone/GrandsonLibrary.py
         
     - name: ✅ Verify build success
       shell: powershell

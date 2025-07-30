@@ -90,7 +90,19 @@ class StandaloneAndyLibrary:
     def download_database(self):
         """Download database from main installation"""
         # Try multiple possible locations for the source database
-        possible_paths = [
+        possible_paths = []
+        
+        # If running as PyInstaller bundle, check bundle locations first
+        if hasattr(sys, '_MEIPASS'):
+            bundle_dir = Path(sys._MEIPASS)
+            possible_paths.extend([
+                bundle_dir / "MyLibrary.db",  # Database bundled in root
+                bundle_dir / "Data" / "MyLibrary.db",  # Database bundled in Data folder
+            ])
+            print(f"🔍 Running as EXE bundle. Bundle directory: {bundle_dir}")
+        
+        # Standard locations
+        possible_paths.extend([
             self.app_dir / "Data" / "Databases" / "MyLibrary.db",
             Path("/home/herb/Desktop/AndyLibrary/Data/Databases/MyLibrary.db"),
             self.script_dir.parent / "Data" / "Databases" / "MyLibrary.db",
@@ -98,7 +110,7 @@ class StandaloneAndyLibrary:
             # Check if database is bundled with executable
             self.script_dir / "MyLibrary.db",
             Path("MyLibrary.db").resolve()
-        ]
+        ])
         
         for source_db in possible_paths:
             if source_db.exists():
