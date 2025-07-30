@@ -22,6 +22,7 @@ import webbrowser
 import requests
 import urllib.parse
 import re
+import time
 from pathlib import Path
 from datetime import datetime
 
@@ -111,14 +112,54 @@ class GrandsonLibrary:
             print(f"❌ URL parsing error: {e}")
             return None
     
-    def download_database_from_drive(self):
-        """Download database from Grandpa's Google Drive"""
+    def background_database_update(self):
+        """Update database in background without blocking startup"""
+        try:
+            print("🔄 Checking for database updates...")
+            
+            # Create temporary database path
+            temp_db_path = self.data_dir / "MyLibrary_temp.db"
+            
+            # Download to temporary location
+            if self.download_database_to_path(temp_db_path):
+                # Verify the new database
+                try:
+                    conn = sqlite3.connect(str(temp_db_path))
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM books")
+                    new_count = cursor.fetchone()[0]
+                    conn.close()
+                    
+                    # Get current database count for comparison
+                    current_count = self.get_book_count()
+                    
+                    if new_count != current_count:
+                        print(f"📚 Library update available: {new_count} books (was {current_count})")
+                        # Replace current database with updated one
+                        if self.database_path.exists():
+                            self.database_path.unlink()  # Remove old database
+                        temp_db_path.rename(self.database_path)  # Move new database
+                        print("✅ Library updated successfully!")
+                    else:
+                        print("✅ Library is up to date")
+                        temp_db_path.unlink()  # Remove temp file
+                        
+                except Exception as e:
+                    print(f"⚠️ Database update verification failed: {e}")
+                    if temp_db_path.exists():
+                        temp_db_path.unlink()
+            else:
+                print("⚠️ No updates available from Granddaddy's Google Drive")
+                
+        except Exception as e:
+            print(f"⚠️ Background update error: {e}")
+    
+    def download_database_to_path(self, target_path):
+        """Download database to specific path"""
         if not self.google_drive_folder_id:
             return False
             
         try:
-            print(f"📥 Downloading library from {self.grandpa_name}'s Google Drive...")
-            
             # Search for MyLibrary.db in the folder
             api_url = "https://www.googleapis.com/drive/v3/files"
             params = {
@@ -142,8 +183,6 @@ class GrandsonLibrary:
                     db_file = files[0]  # Use first .db file found
                 
                 if db_file:
-                    print(f"📚 Found database: {db_file['name']}")
-                    
                     # Download the database
                     file_id = db_file['id']
                     download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
@@ -152,28 +191,35 @@ class GrandsonLibrary:
                     
                     if response.status_code == 200:
                         # Save database
-                        with open(self.database_path, 'wb') as f:
+                        with open(target_path, 'wb') as f:
                             f.write(response.content)
-                        
-                        # Verify database
-                        if self.verify_database():
-                            print(f"✅ Downloaded {self.grandpa_name}'s library successfully!")
-                            return True
-                        else:
-                            print("❌ Downloaded database failed verification")
-                            return False
+                        return True
                     else:
                         print(f"❌ Download failed: HTTP {response.status_code}")
                         return False
                 else:
-                    print("❌ No database file found in shared folder")
                     return False
             else:
-                print(f"❌ Failed to access shared folder: HTTP {response.status_code}")
                 return False
                 
         except Exception as e:
             print(f"❌ Database download error: {e}")
+            return False
+
+    def download_database_from_drive(self):
+        """Download database from Grandpa's Google Drive"""
+        print(f"📥 Downloading library from {self.grandpa_name}'s Google Drive...")
+        
+        if self.download_database_to_path(self.database_path):
+            # Verify database
+            if self.verify_database():
+                print(f"✅ Downloaded {self.grandpa_name}'s library successfully!")
+                return True
+            else:
+                print("❌ Downloaded database failed verification")
+                return False
+        else:
+            print("❌ Failed to download database from Google Drive")
             return False
     
     def verify_database(self):
@@ -249,10 +295,37 @@ class GrandsonLibrary:
         return not self.database_path.exists()
     
     def setup_database(self):
-        """Setup database for grandson's use"""
+        """Setup database for grandson's use with auto-download"""
         print("🔄 Setting up library database...")
         
-        # If database already exists, we're good
+        # Check if we should download fresh database from Google Drive
+        should_download = False
+        
+        if not self.database_path.exists():
+            print("📥 No local database found - downloading from Granddaddy's Google Drive...")
+            should_download = True
+        else:
+            # Check database age - download if older than 1 day
+            db_age_hours = (time.time() - self.database_path.stat().st_mtime) / 3600
+            if db_age_hours > 24:
+                print(f"📅 Database is {db_age_hours:.1f} hours old - checking for updates...")
+                should_download = True
+        
+        # Download fresh database if needed
+        if should_download and self.google_drive_folder_id:
+            # For first-time setup, download synchronously
+            if not self.database_path.exists():
+                print("🌐 Downloading latest library from Granddaddy...")
+                if self.download_database_from_drive():
+                    print("✅ Latest library downloaded successfully!")
+                else:
+                    print("⚠️ Download failed - will use fallback database")
+            else:
+                # For updates, download in background to minimize startup time
+                print("🔄 Checking for library updates in background...")
+                threading.Thread(target=self.background_database_update, daemon=True).start()
+        
+        # Verify database exists and works
         if self.database_path.exists():
             try:
                 conn = sqlite3.connect(str(self.database_path))
