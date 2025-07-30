@@ -64,27 +64,22 @@ jobs:
         dir dist\AndyLibrary.exe
         
     - name: Create distribution package
+      shell: cmd
       run: |
         echo @echo off > dist\Start_AndyLibrary.bat
         echo title AndyLibrary - Educational Library >> dist\Start_AndyLibrary.bat
-        echo echo. >> dist\Start_AndyLibrary.bat
-        echo echo 🏔️ AndyLibrary - Project Himalaya >> dist\Start_AndyLibrary.bat
+        echo echo AndyLibrary - Project Himalaya >> dist\Start_AndyLibrary.bat
         echo echo Educational Library for Everyone >> dist\Start_AndyLibrary.bat
-        echo echo. >> dist\Start_AndyLibrary.bat
         echo echo Starting your grandson's library... >> dist\Start_AndyLibrary.bat
-        echo echo. >> dist\Start_AndyLibrary.bat
         echo AndyLibrary.exe >> dist\Start_AndyLibrary.bat
         echo pause >> dist\Start_AndyLibrary.bat
         
-
         echo # AndyLibrary - Grandson's Educational Library > dist\README.md
-        echo. >> dist\README.md
         echo ## Quick Start >> dist\README.md
         echo 1. Double-click AndyLibrary.exe >> dist\README.md
         echo 2. Wait for browser to open >> dist\README.md
         echo 3. Click "Continue as Guest" >> dist\README.md
         echo 4. Browse 1,219+ educational books! >> dist\README.md
-        echo. >> dist\README.md
         echo Built with PyInstaller on Windows for maximum compatibility. >> dist\README.md
         
     - name: Upload Windows executable
