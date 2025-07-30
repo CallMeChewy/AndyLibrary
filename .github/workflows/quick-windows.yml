@@ -24,12 +24,12 @@ jobs:
       run: |
         pip install pyinstaller fastapi uvicorn requests
         
-    - name: Build Grandson's Library EXE with Database
+    - name: Build Grandson's Library EXE with WebPages
       run: |
-        pyinstaller --onefile --console --add-data "Data/Databases/MyLibrary.db;Data/Databases/" --add-data "WebPages;WebPages" Standalone/StandaloneAndyLibrary.py --name GrandsonLibrary-Windows
+        pyinstaller --onefile --console --add-data "WebPages;WebPages" Standalone/StandaloneAndyLibrary.py --name GrandsonLibrary-Complete
         
     - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
-        name: GrandsonLibrary-Windows
-        path: dist/GrandsonLibrary-Windows.exe
+        name: GrandsonLibrary-Complete
+        path: dist/GrandsonLibrary-Complete.exe
