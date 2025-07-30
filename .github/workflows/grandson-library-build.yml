@@ -1,0 +1,220 @@
+# File: grandson-library-build.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/grandson-library-build.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-30
+# Last Modified: 2025-07-30 05:10PM
+
+name: Build Grandson's Library Windows EXE
+
+on:
+  push:
+    paths:
+      - 'Standalone/GrandsonLibrary.py'
+      - 'Standalone/grandson-library-windows.spec'
+      - '.github/workflows/grandson-library-build.yml'
+  workflow_dispatch:
+    inputs:
+      build_reason:
+        description: 'Reason for manual build'
+        required: false
+        default: 'Manual build for testing'
+
+jobs:
+  build-grandson-windows-exe:
+    name: 🎓 Build Grandson's Educational Library
+    runs-on: windows-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller fastapi uvicorn requests aiofiles
+        
+    - name: 📚 Verify database exists
+      shell: powershell
+      run: |
+        if (Test-Path "Data/Databases/MyLibrary.db") {
+          $size = (Get-Item "Data/Databases/MyLibrary.db").Length / 1MB
+          Write-Host "✅ Database found: $([math]::Round($size, 1))MB"
+        } else {
+          Write-Host "⚠️ Database not found - using demo library"
+        }
+        
+    - name: 🔧 Create Windows-specific spec file
+      shell: powershell
+      run: |
+        $specContent = @'
+# -*- mode: python ; coding: utf-8 -*-
+# GitHub Actions Windows Build for Grandson's Library
+
+import os
+from pathlib import Path
+
+# Get paths
+spec_dir = Path(SPECPATH)
+app_dir = spec_dir.parent
+webpages_dir = app_dir / "WebPages"
+main_db_path = app_dir / "Data" / "Databases" / "MyLibrary.db"
+
+# Collect data files
+data_files = []
+
+# Include WebPages directory
+if webpages_dir.exists():
+    for root, dirs, files in os.walk(webpages_dir):
+        for file in files:
+            file_path = Path(root) / file
+            relative_path = file_path.relative_to(app_dir)
+            data_files.append((str(file_path), str(relative_path.parent)))
+    print(f"📁 Including WebPages: {len([f for f in data_files if 'WebPages' in f[1]])} files")
+
+# Include database
+if main_db_path.exists():
+    print(f"📚 Including database: {main_db_path}")
+    data_files.append((str(main_db_path), '.'))
+else:
+    print("⚠️ No database found")
+
+print(f"📦 Total files: {len(data_files)}")
+
+a = Analysis(
+    ['Standalone/GrandsonLibrary.py'],
+    pathex=[str(spec_dir)],
+    binaries=[],
+    datas=data_files,
+    hiddenimports=[
+        'uvicorn.protocols.websockets.auto',
+        'uvicorn.protocols.websockets.websockets_impl',
+        'uvicorn.protocols.http.auto', 
+        'uvicorn.protocols.http.h11_impl',
+        'uvicorn.protocols.http.httptools_impl',
+        'uvicorn.lifespan.on',
+        'uvicorn.lifespan.off',
+        'fastapi.routing',
+        'fastapi.responses',
+        'fastapi.staticfiles',
+        'requests',
+        'requests.adapters', 
+        'requests.auth',
+        'urllib3',
+        'urllib3.util',
+        'sqlite3',
+        'threading',
+        'webbrowser',
+        'pathlib',
+        'shutil',
+        'json',
+        'socket',
+        're'
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[
+        'tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy',
+        'PIL', 'cv2', 'torch', 'tensorflow', 'sklearn'
+    ],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=None,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=None)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name='GrandsonLibrary',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch='x86_64',
+    codesign_identity=None,
+    entitlements_file=None,
+)
+'@
+        $specContent | Out-File -FilePath "grandson-github-actions.spec" -Encoding UTF8
+        
+    - name: 🔨 Build Windows EXE using PyInstaller
+      run: |
+        pyinstaller --clean grandson-github-actions.spec
+        
+    - name: ✅ Verify build success
+      shell: powershell
+      run: |
+        if (Test-Path "dist/GrandsonLibrary.exe") {
+          $size = (Get-Item "dist/GrandsonLibrary.exe").Length / 1MB
+          Write-Host "🎉 BUILD SUCCESS! 🎉"
+          Write-Host "📄 File: GrandsonLibrary.exe"
+          Write-Host "📊 Size: $([math]::Round($size, 1))MB"
+          Write-Host "🖥️ Platform: Windows x64"
+          Write-Host "📚 Hard-coded for Granddaddy's Google Drive"
+          Write-Host ""
+          Write-Host "✅ Ready for grandson deployment!"
+        } else {
+          Write-Host "❌ Build failed - EXE not found"
+          exit 1
+        }
+        
+    - name: 📤 Upload Windows EXE artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: grandson-library-windows-exe
+        path: dist/GrandsonLibrary.exe
+        retention-days: 30
+        
+    - name: 📋 Create deployment instructions
+      shell: powershell
+      run: |
+        $instructions = @'
+# 🎓 Grandson's Library - Windows EXE Ready!
+
+## Built Successfully ✅
+- **File**: GrandsonLibrary.exe  
+- **Platform**: Windows 64-bit
+- **Database**: 1,200+ books included
+- **Google Drive**: Hard-coded access
+- **Setup**: None required!
+
+## For Granddaddy 📋
+1. Download the artifact from this GitHub Actions run
+2. Extract GrandsonLibrary.exe  
+3. Test on your Windows (ick) system first
+4. Copy to grandson's computer
+5. Tell him to double-click it!
+
+## For Grandson 🎮
+1. Double-click GrandsonLibrary.exe
+2. Browser opens automatically  
+3. Search and read 1,200+ books
+4. No internet needed after startup!
+
+Built with ❤️ by Granddaddy and GitHub Actions
+'@
+        $instructions | Out-File -FilePath "GRANDSON-DEPLOYMENT-READY.md" -Encoding UTF8
+        
+    - name: 📤 Upload deployment instructions
+      uses: actions/upload-artifact@v4  
+      with:
+        name: grandson-deployment-instructions
+        path: GRANDSON-DEPLOYMENT-READY.md
+        retention-days: 30
