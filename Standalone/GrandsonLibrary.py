@@ -265,13 +265,23 @@ class GrandsonLibrary:
             except Exception as e:
                 print(f"⚠️ Database issue: {e}")
         
-        # Try to find database from main installation
-        possible_sources = [
+        # Try to find database from various sources
+        possible_sources = []
+        
+        # Check if running as PyInstaller bundle
+        if hasattr(sys, '_MEIPASS'):
+            # Running as EXE - check bundled database
+            bundled_db = Path(sys._MEIPASS) / "Data" / "Databases" / "MyLibrary.db"
+            possible_sources.append(bundled_db)
+            print(f"🔍 Checking bundled database: {bundled_db}")
+        
+        # Add other possible locations
+        possible_sources.extend([
             self.app_dir / "Data" / "Databases" / "MyLibrary.db",
             Path("/home/herb/Desktop/AndyLibrary/Data/Databases/MyLibrary.db"),
-            self.script_dir / "MyLibrary.db",  # Same directory as script
-            Path("MyLibrary.db")  # Current directory
-        ]
+            self.script_dir / "MyLibrary.db",
+            Path("MyLibrary.db")
+        ])
         
         for source_db in possible_sources:
             if source_db.exists():
