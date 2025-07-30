@@ -93,7 +93,7 @@ jobs:
         echo Built with PyInstaller on Windows for maximum compatibility. >> dist\README.md
         
     - name: Upload Windows executable
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: AndyLibrary-Windows-Standalone
         path: |
@@ -102,36 +102,10 @@ jobs:
           dist/README.md
         retention-days: 30
         
-    - name: Create Release (if on main)
-      if: github.ref == 'refs/heads/main'
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v1.0-${{ github.run_number }}
-        release_name: AndyLibrary Windows v1.0-${{ github.run_number }}
-        body: |
-          🏔️ AndyLibrary - Project Himalaya
-          Educational Library for Windows
-          
-          ## What's New
-          - 📚 1,219+ educational books across 26 categories
-          - 🔍 Smart search and filtering
-          - 📖 Built-in PDF reader
-          - 🌐 100% offline functionality
-          - ⚡ Auto port detection (no HP printer conflicts)
-          
-          ## Quick Start
-          1. Download `AndyLibrary.exe`
-          2. Double-click to run
-          3. Click "Continue as Guest" when browser opens
-          4. Start learning!
-          
-          ## System Requirements
-          - Windows 7/8/10/11 (64-bit)
-          - 100MB free space
-          - Any modern web browser
-          
-          Built automatically with GitHub Actions for maximum Windows compatibility.
-        draft: false
-        prerelease: false
+    - name: Show build summary
+      run: |
+        echo "=== BUILD COMPLETE ==="
+        echo "Executable: dist\AndyLibrary.exe"
+        echo "Size: " 
+        powershell -Command "'{0:N2} MB' -f ((Get-Item dist\AndyLibrary.exe).Length / 1MB)"
+        echo "Ready for download as artifact!"
