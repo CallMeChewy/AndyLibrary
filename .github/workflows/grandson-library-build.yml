@@ -39,32 +39,17 @@ jobs:
         pip install pyinstaller fastapi uvicorn requests aiofiles
         
     - name: 📚 Setup database for grandson
-      shell: powershell
       run: |
-        # Check for database in various locations
-        $dbPaths = @(
-          "Data/Databases/MyLibrary.db",
-          "Standalone/MyLibrary.db", 
-          "Standalone/Data/MyLibrary.db"
+        echo "Checking for database files..."
+        if exist "Data\Databases\MyLibrary.db" (
+          echo "Database found in Data/Databases/"
+          copy "Data\Databases\MyLibrary.db" "Standalone\MyLibrary.db"
+          echo "Database copied for grandson"
+        ) else if exist "Standalone\MyLibrary.db" (
+          echo "Database already in Standalone directory"
+        ) else (
+          echo "No database found - grandson will get demo library"
         )
-        
-        $foundDb = $false
-        foreach ($path in $dbPaths) {
-          if (Test-Path $path) {
-            $size = (Get-Item $path).Length / 1MB
-            Write-Host "✅ Database found at $path : $([math]::Round($size, 1))MB"
-            
-            # Copy to Standalone directory for easy access
-            Copy-Item $path "Standalone/MyLibrary.db" -Force
-            Write-Host "📥 Database copied to Standalone/MyLibrary.db"
-            $foundDb = $true
-            break
-          }
-        }
-        
-        if (-not $foundDb) {
-          Write-Host "⚠️ No database found - grandson will get demo library"
-        }
         
     - name: 🔧 Build Windows EXE with PyInstaller  
       shell: cmd
