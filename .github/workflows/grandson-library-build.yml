@@ -38,20 +38,38 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller fastapi uvicorn requests aiofiles
         
-    - name: 📚 Verify database exists
+    - name: 📚 Setup database for grandson
       shell: powershell
       run: |
-        if (Test-Path "Data/Databases/MyLibrary.db") {
-          $size = (Get-Item "Data/Databases/MyLibrary.db").Length / 1MB
-          Write-Host "✅ Database found: $([math]::Round($size, 1))MB"
-        } else {
-          Write-Host "⚠️ Database not found - using demo library"
+        # Check for database in various locations
+        $dbPaths = @(
+          "Data/Databases/MyLibrary.db",
+          "Standalone/MyLibrary.db", 
+          "Standalone/Data/MyLibrary.db"
+        )
+        
+        $foundDb = $false
+        foreach ($path in $dbPaths) {
+          if (Test-Path $path) {
+            $size = (Get-Item $path).Length / 1MB
+            Write-Host "✅ Database found at $path : $([math]::Round($size, 1))MB"
+            
+            # Copy to Standalone directory for easy access
+            Copy-Item $path "Standalone/MyLibrary.db" -Force
+            Write-Host "📥 Database copied to Standalone/MyLibrary.db"
+            $foundDb = $true
+            break
+          }
         }
         
-    - name: 🔧 Build directly with PyInstaller  
+        if (-not $foundDb) {
+          Write-Host "⚠️ No database found - grandson will get demo library"
+        }
+        
+    - name: 🔧 Build Windows EXE with PyInstaller  
       shell: cmd
       run: |
-        pyinstaller --onefile --console --name "GrandsonLibrary" --add-data "Data/Databases/MyLibrary.db;." --add-data "WebPages;WebPages" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "uvicorn.lifespan.on" --hidden-import "uvicorn.lifespan.off" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" --hidden-import "requests" --hidden-import "sqlite3" --hidden-import "threading" --hidden-import "webbrowser" Standalone/GrandsonLibrary.py
+        pyinstaller --onefile --console --name "GrandsonLibrary" --add-data "Standalone/MyLibrary.db;." --add-data "WebPages;WebPages" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "uvicorn.lifespan.on" --hidden-import "uvicorn.lifespan.off" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" --hidden-import "requests" --hidden-import "sqlite3" --hidden-import "threading" --hidden-import "webbrowser" Standalone/GrandsonLibrary.py
         
     - name: ✅ Verify build success
       shell: powershell
