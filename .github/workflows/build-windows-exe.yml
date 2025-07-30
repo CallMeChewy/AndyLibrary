@@ -36,17 +36,12 @@ jobs:
         pip install -r requirements.txt
       continue-on-error: true
       
-    - name: Create requirements.txt if missing
+    - name: Install additional dependencies
       run: |
-        echo "fastapi>=0.100.0" > requirements.txt
-        echo "uvicorn[standard]>=0.20.0" >> requirements.txt
-        echo "google-auth>=2.0.0" >> requirements.txt
-        echo "google-auth-oauthlib>=1.0.0" >> requirements.txt
-        echo "google-api-python-client>=2.0.0" >> requirements.txt
-        echo "pydantic>=2.0.0" >> requirements.txt
-        echo "cryptography>=3.0.0" >> requirements.txt
-        echo "sqlite3" >> requirements.txt
-        pip install -r requirements.txt
+        pip install pyinstaller
+        pip install fastapi uvicorn
+        pip install google-auth google-auth-oauthlib google-api-python-client
+        pip install pydantic cryptography
       
     - name: Verify project structure
       run: |
