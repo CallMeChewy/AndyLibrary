@@ -39,16 +39,17 @@ jobs:
         pip install pyinstaller fastapi uvicorn requests aiofiles
         
     - name: 📚 Setup database for grandson
+      shell: cmd
       run: |
-        echo "Checking for database files..."
+        echo Checking for database files...
         if exist "Data\Databases\MyLibrary.db" (
-          echo "Database found in Data/Databases/"
+          echo Database found in Data/Databases/
           copy "Data\Databases\MyLibrary.db" "Standalone\MyLibrary.db"
-          echo "Database copied for grandson"
+          echo Database copied for grandson
         ) else if exist "Standalone\MyLibrary.db" (
-          echo "Database already in Standalone directory"
+          echo Database already in Standalone directory  
         ) else (
-          echo "No database found - grandson will get demo library"
+          echo No database found - grandson will get demo library
         )
         
     - name: 🔧 Build Windows EXE with PyInstaller  
