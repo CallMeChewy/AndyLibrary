@@ -11,19 +11,6 @@ Grandson's Educational Library - Self-contained executable
 
 import os
 import sys
-from pathlib import Path
-
-# Add project root to path for imports
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root / "Source"))
-
-try:
-    from Core.DriveManager import DriveManager
-    from Core.DatabaseManager import DatabaseManager
-except ImportError as e:
-    print(f"Warning: Could not import database managers: {e}")
-    DriveManager = None
-    DatabaseManager = None
 import json
 import socket
 import subprocess
@@ -146,48 +133,6 @@ class AndyLibraryStandalone:
             print("3. Check Windows Firewall settings")
             input("\nPress Enter to exit...")
             sys.exit(1)
-
-
-def InitializeWindowsDatabase():
-    """Initialize database for Windows standalone executable"""
-    print("🔄 Initializing Windows database...")
-    
-    try:
-        # Check if we have database managers available
-        if DriveManager is None:
-            print("⚠️ DriveManager not available - using local database if present")
-            return CheckLocalDatabase()
-        
-        # Initialize DriveManager
-        config_path = Path(__file__).parent / "Config" / "andygoogle_config.json"
-        drive_manager = DriveManager(str(config_path))
-        
-        # Initialize database (will download from Google Drive if needed)
-        if drive_manager.InitializeDatabase():
-            print("✅ Database initialized successfully")
-            return True
-        else:
-            print("⚠️ Google Drive sync failed - checking for local database")
-            return CheckLocalDatabase()
-            
-    except Exception as e:
-        print(f"⚠️ Database initialization error: {e}")
-        return CheckLocalDatabase()
-
-def CheckLocalDatabase():
-    """Check if local database exists and is valid"""
-    db_paths = [
-        Path(__file__).parent / "Data" / "Databases" / "MyLibrary.db",
-        Path(__file__).parent / "Data" / "Local" / "cached_library.db"
-    ]
-    
-    for db_path in db_paths:
-        if db_path.exists() and db_path.stat().st_size > 100000:  # At least 100KB
-            print(f"✅ Using local database: {db_path}")
-            return True
-    
-    print("❌ No valid database found - application may not function properly")
-    return False
 
 def main():
     """Main entry point for standalone executable"""

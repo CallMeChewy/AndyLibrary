@@ -1,0 +1,312 @@
+{
+  "timestamp": "2025-07-30T17:44:47.730644",
+  "system_info": {
+    "platform": "linux",
+    "python_version": "3.11.9 (main, Jun  3 2025, 19:36:31) [GCC 14.2.0]",
+    "current_directory": "/home/herb/Desktop/AndyLibrary",
+    "project_root": "/home/herb/Desktop/AndyLibrary",
+    "temp_directory": null,
+    "environment_variables": {
+      "PYTHONPATH": null,
+      "GOOGLE_APPLICATION_CREDENTIALS": null,
+      "HOME": "/home/herb",
+      "USERPROFILE": null
+    },
+    "path_variables": [
+      "/home/herb/.pyenv/versions/3.11.9/bin",
+      "/home/herb/.pyenv/libexec",
+      "/home/herb/.pyenv/plugins/python-build/bin",
+      "/home/herb/.pyenv/plugins/pyenv-virtualenv/bin",
+      "/home/herb/.pyenv/plugins/pyenv-update/bin"
+    ]
+  },
+  "database_analysis": {
+    "main_database": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Data/Databases/MyLibrary.db",
+      "size_bytes": 11067392,
+      "size_mb": 10.55,
+      "modified_time": "2025-07-30T13:03:32.781268",
+      "hash": "a40d134cb8d90fb7a67eefc883d6cad7",
+      "tables": [
+        "categories",
+        "subjects",
+        "books",
+        "sqlite_stat1",
+        "Users",
+        "sqlite_sequence",
+        "UserSessions",
+        "UserPreferences",
+        "PublicationRequests",
+        "UserActivity"
+      ],
+      "record_count": 1421,
+      "integrity_check": true,
+      "schema_info": {
+        "books_columns": 15,
+        "books_schema": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": false
+          },
+          {
+            "name": "title",
+            "type": "TEXT",
+            "not_null": true
+          },
+          {
+            "name": "category_id",
+            "type": "INTEGER",
+            "not_null": false
+          },
+          {
+            "name": "subject_id",
+            "type": "INTEGER",
+            "not_null": false
+          },
+          {
+            "name": "author",
+            "type": "TEXT",
+            "not_null": false
+          },
+          {
+            "name": "FilePath",
+            "type": "TEXT",
+            "not_null": false
+          },
+          {
+            "name": "ThumbnailImage",
+            "type": "BLOB",
+            "not_null": false
+          },
+          {
+            "name": "last_opened",
+            "type": "TEXT",
+            "not_null": false
+          },
+          {
+            "name": "LastOpened",
+            "type": "TEXT",
+            "not_null": false
+          },
+          {
+            "name": "Rating",
+            "type": "INTEGER",
+            "not_null": false
+          },
+          {
+            "name": "Notes",
+            "type": "TEXT",
+            "not_null": false
+          },
+          {
+            "name": "FileSize",
+            "type": "INTEGER",
+            "not_null": false
+          },
+          {
+            "name": "PageCount",
+            "type": "INTEGER",
+            "not_null": false
+          },
+          {
+            "name": "CreatedBy",
+            "type": "TEXT",
+            "not_null": false
+          },
+          {
+            "name": "LastModifiedBy",
+            "type": "TEXT",
+            "not_null": false
+          }
+        ]
+      },
+      "table_counts": {
+        "categories": 26,
+        "subjects": 118,
+        "books": 1219,
+        "sqlite_stat1": 13,
+        "Users": 17,
+        "sqlite_sequence": 4,
+        "UserSessions": 16,
+        "UserPreferences": 4,
+        "PublicationRequests": 4,
+        "UserActivity": 0
+      }
+    },
+    "web_database": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Data/Databases/MyLibraryWeb.db",
+      "size_bytes": 10805248,
+      "size_mb": 10.3,
+      "modified_time": "2025-07-09T14:45:34.359984",
+      "hash": "6742ae8ac0e699f6d33695927fd5bc69",
+      "tables": [
+        "Categories",
+        "sqlite_sequence",
+        "Subjects",
+        "Books",
+        "DatabaseInfo"
+      ],
+      "record_count": 1379,
+      "integrity_check": true,
+      "schema_info": {},
+      "table_counts": {
+        "Categories": 26,
+        "sqlite_sequence": 3,
+        "Subjects": 118,
+        "Books": 1219,
+        "DatabaseInfo": 13
+      }
+    },
+    "temp_database": {
+      "exists": false,
+      "path": null
+    }
+  },
+  "config_analysis": {
+    "andygoogle_config": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Config/andygoogle_config.json",
+      "size_bytes": 703,
+      "modified_time": "2025-07-23T20:54:24.284203",
+      "keys": [
+        "google_credentials_path",
+        "local_database_path",
+        "backup_database_path",
+        "auto_sync_enabled",
+        "sync_interval_hours",
+        "offline_grace_period_days",
+        "version_check_interval_hours",
+        "max_backup_versions",
+        "required_free_space_mb",
+        "auto_update_recommended",
+        "auto_update_optional",
+        "server_host",
+        "server_port",
+        "server_port_range",
+        "api_logging_enabled",
+        "usage_analytics_enabled",
+        "batch_upload_threshold",
+        "error_reporting_enabled"
+      ],
+      "sensitive_data_present": false
+    },
+    "oauth_security_config": {
+      "exists": true,
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    },
+    "google_credentials": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Config/google_credentials.json",
+      "size_bytes": 1047,
+      "modified_time": "2025-07-30T13:03:14.290790",
+      "keys": [
+        "web"
+      ],
+      "sensitive_data_present": false
+    },
+    "google_token": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Config/google_token.json",
+      "size_bytes": 476,
+      "modified_time": "2025-07-24T20:27:55.178827",
+      "keys": [
+        "access_token",
+        "refresh_token",
+        "token_uri",
+        "client_id",
+        "client_secret",
+        "scopes",
+        "expiry"
+      ],
+      "sensitive_data_present": true
+    }
+  },
+  "build_analysis": {
+    "pyinstaller_spec": [
+      {
+        "path": "/home/herb/Desktop/AndyLibrary/build_windows_exe.spec",
+        "size": 2696,
+        "content_preview": "# File: build_windows_exe.spec\n# Path: /home/herb/Desktop/AndyLibrary/build_windows_exe.spec\n# Standard: AIDEV-PascalCase-2.1\n# Created: 2025-07-30\n# Last Modified: 2025-07-30 02:09PM\n\n\"\"\"\nPyInstaller spec file for AndyLibrary Windows .exe\nCreates a standalone executable with all dependencies bundled\n\"\"\"\n\nimport os\nfrom pathlib import Path\n\n# Get the base directory\nbase_dir = Path(SPECPATH)\n\n# Define data files to include\ndatas = [\n    # Include the entire Source directory\n    (str(base_dir / 'S..."
+      }
+    ],
+    "build_scripts": [
+      {
+        "path": "/home/herb/Desktop/AndyLibrary/build_for_windows.py",
+        "size": 6999,
+        "content_preview": "# File: build_for_windows.py\n# Path: /home/herb/Desktop/AndyLibrary/build_for_windows.py\n# Standard: AIDEV-PascalCase-2.1\n# Created: 2025-07-30\n# Last Modified: 2025-07-30 02:09PM\n\n\"\"\"\nBuild script for creating AndyLibrary Windows executable\nCreates a standalone .exe with all dependencies bundled\n\"\"\"\n\nimport os\nimport sys\nimport subprocess\nimport shutil\nfrom pathlib import Path\nfrom datetime import datetime\n\nclass WindowsExeBuilder:\n    \"\"\"Build AndyLibrary as a Windows executable\"\"\"\n    \n    de..."
+      },
+      {
+        "path": "/home/herb/Desktop/AndyLibrary/build_windows_final.py",
+        "size": 7728,
+        "content_preview": "# File: build_windows_final.py\n# Path: /home/herb/Desktop/AndyLibrary/build_windows_final.py\n# Standard: AIDEV-PascalCase-2.1\n# Created: 2025-07-30\n# Last Modified: 2025-07-30 02:15PM\n\n\"\"\"\nFinal Windows build script for AndyLibrary\nCreates a complete Windows executable with documentation\n\"\"\"\n\nimport os\nimport sys\nimport subprocess\nimport shutil\nfrom pathlib import Path\nfrom datetime import datetime\n\ndef create_windows_exe():\n    \"\"\"Create the final Windows executable\"\"\"\n    base_dir = Path(__fil..."
+      }
+    ],
+    "dockerfile": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Dockerfile.windows",
+      "size": 401,
+      "content_preview": "# Dockerfile for Windows EXE building\nFROM python:3.11-windowsservercore\n\n# Set working directory\nWORKDIR /app\n\n# Copy requirements and install\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\nRUN pip install pyinstaller\n\n# Copy application code\nCOPY . .\n\n# Build the executable\nRUN pyinstaller --onefile --windowed your_main_script.py\n\n# The executable will be in /app/dist/"
+    },
+    "requirements": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/requirements.txt",
+      "size": 333,
+      "content_preview": "# Core web framework\nfastapi>=0.100.0\nuvicorn[standard]>=0.20.0\n\n# Data handling\npydantic>=2.0.0\n\n# Google APIs (with dummy credentials)\ngoogle-auth>=2.0.0\ngoogle-auth-oauthlib>=1.0.0\ngoogle-api-python-client>=2.0.0\n\n# Security and encryption  \ncryptography>=3.0.0\n\n# Additional dependencies\nstarlette>=0.27.0\npython-multipart>=0.0.6"
+    },
+    "standalone_requirements": {
+      "exists": true,
+      "path": "/home/herb/Desktop/AndyLibrary/Standalone/requirements-standalone.txt",
+      "size": 403,
+      "content_preview": "# Standalone AndyLibrary Requirements\n# Minimal dependencies for basic library functionality\n\nfastapi==0.115.0\nuvicorn==0.30.6\naiofiles==24.1.0\npython-multipart==0.0.12\n\n# Core web server\nstarlette==0.38.6\nanyio==4.9.0\nsniffio==1.3.1\nh11==0.16.0\n\n# JSON/Data handling\npydantic==2.10.0\npydantic_core==2.27.0\ntyping_extensions==4.14.1\nannotated-types==0.7.0\n\n# For PyInstaller packaging\npyinstaller==6.3.0"
+    },
+    "database_inclusion": {
+      "placeholder_db_found": false,
+      "full_db_inclusion": false,
+      "google_drive_sync_logic": false,
+      "startup_database_check": false
+    }
+  },
+  "auth_analysis": {
+    "credentials_file_exists": true,
+    "token_file_exists": true,
+    "oauth_config_exists": true,
+    "drive_api_accessible": true,
+    "authentication_test": "API class accessible"
+  },
+  "path_analysis": {
+    "config_paths": {
+      "google_credentials_path": "Config/google_credentials.json",
+      "local_database_path": "Data/Local/cached_library.db",
+      "backup_database_path": "Data/Local/backup_library.db"
+    },
+    "actual_paths": {
+      "main_database": "/home/herb/Desktop/AndyLibrary/Data/Databases/MyLibrary.db",
+      "temp_database": null,
+      "credentials": "/home/herb/Desktop/AndyLibrary/Config/google_credentials.json",
+      "token": "/home/herb/Desktop/AndyLibrary/Config/google_token.json"
+    },
+    "path_mismatches": [],
+    "temp_vs_main_paths": {}
+  },
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "category": "Database Sync",
+      "issue": "Windows executable using placeholder database",
+      "recommendation": "Modify Windows build to call DriveManager.InitializeDatabase() on startup",
+      "code_location": "StartAndyGoogle.py or main startup file",
+      "specific_action": "Add database sync check before server startup"
+    },
+    {
+      "priority": "HIGH",
+      "category": "Startup Sequence",
+      "issue": "Missing database initialization check",
+      "recommendation": "Add comprehensive database check on application startup",
+      "code_location": "StartAndyGoogle.py",
+      "specific_action": "Implement startup database validation and sync logic"
+    }
+  ]
+}

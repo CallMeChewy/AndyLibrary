@@ -97,11 +97,6 @@ class AndyGoogleStarter:
         
         return issues
     
-
-        # Check database availability
-        if not self.validate_database():
-            issues.append('Database not available - will attempt initialization')
-
     def find_available_port(self, start_port=8000, max_attempts=20):
         """Find an available port starting from start_port"""
         print(f"🔍 Searching for available port starting from {start_port}...")
@@ -262,35 +257,6 @@ class AndyGoogleStarter:
         except Exception as e:
             print(f"❌ Failed to start server: {e}")
             return False
-
-
-    def validate_database(self):
-        """Validate database availability and integrity"""
-        from pathlib import Path
-        import sqlite3
-        
-        # Check common database locations
-        db_paths = [
-            Path(self.script_dir) / "Data" / "Databases" / "MyLibrary.db",
-            Path(self.script_dir) / "Data" / "Local" / "cached_library.db"
-        ]
-        
-        for db_path in db_paths:
-            if db_path.exists():
-                try:
-                    # Quick validation
-                    conn = sqlite3.connect(str(db_path))
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM books")
-                    count = cursor.fetchone()[0]
-                    conn.close()
-                    
-                    if count > 0:
-                        return True
-                except:
-                    continue
-        
-        return False
 
 def main():
     """Main entry point"""
