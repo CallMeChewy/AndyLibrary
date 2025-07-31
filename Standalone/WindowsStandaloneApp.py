@@ -119,8 +119,39 @@ class WindowsStandaloneLibrary:
                 else:
                     print(f"❌ Download failed with status: {response.status_code}")
             
-            # Method 2: Search in folder (if we have folder ID)
-            if self.google_drive_folder_id and self.google_drive_folder_id != "folder_id_here":
+            # Method 2: Try public Google Drive download (no API key needed)
+            print("🔍 DIAGNOSTIC: Attempting public Google Drive access...")
+            print(f"🔍 DIAGNOSTIC: File ID: {self.google_drive_file_id}")
+            print(f"🔍 DIAGNOSTIC: Folder ID: {self.google_drive_folder_id}")
+            
+            # Try known public database URLs
+            public_urls = [
+                "https://drive.google.com/uc?export=download&id=1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m",
+                "https://drive.google.com/file/d/1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m/view?usp=sharing"
+            ]
+            
+            for i, url in enumerate(public_urls):
+                print(f"🔗 DIAGNOSTIC: Trying public URL {i+1}: {url}")
+                try:
+                    response = requests.get(url, timeout=30)
+                    print(f"🔍 DIAGNOSTIC: Response status: {response.status_code}")
+                    print(f"🔍 DIAGNOSTIC: Response headers: {dict(response.headers)}")
+                    print(f"🔍 DIAGNOSTIC: Response content length: {len(response.content)}")
+                    
+                    if response.status_code == 200 and len(response.content) > 100000:
+                        with open(self.database_path, 'wb') as f:
+                            f.write(response.content)
+                        
+                        if self.verify_database():
+                            print("✅ Database downloaded from public URL!")
+                            return True
+                    else:
+                        print(f"⚠️ Public URL {i+1} failed or returned small file")
+                except Exception as e:
+                    print(f"❌ Public URL {i+1} error: {e}")
+            
+            # Method 3: Search in folder (if we have folder ID) - with better error handling
+            if self.google_drive_folder_id and self.google_drive_folder_id != "PLACEHOLDER_FOLDER_ID":
                 print("🔍 Searching for database in Google Drive folder...")
                 
                 api_url = "https://www.googleapis.com/drive/v3/files"
@@ -129,7 +160,12 @@ class WindowsStandaloneLibrary:
                     'fields': 'files(id,name,size,mimeType)'
                 }
                 
+                print(f"🔍 DIAGNOSTIC: Making API request to: {api_url}")
+                print(f"🔍 DIAGNOSTIC: Query parameters: {params}")
+                
                 response = requests.get(api_url, params=params, timeout=10)
+                print(f"🔍 DIAGNOSTIC: API Response status: {response.status_code}")
+                print(f"🔍 DIAGNOSTIC: API Response text: {response.text[:500]}...")
                 
                 if response.status_code == 200:
                     files = response.json().get('files', [])
@@ -544,9 +580,10 @@ class WindowsStandaloneLibrary:
     def start_library(self):
         """Start the Windows standalone library"""
         try:
-            print("🪟 ANDY'S EDUCATIONAL LIBRARY - WINDOWS EDITION")
-            print("=" * 60)
-            print("📥 Downloads current database from Google Drive")
+            print("🪟 ANDY'S EDUCATIONAL LIBRARY - WINDOWS STANDALONE EDITION")
+            print("=" * 70)
+            print("📥 CORRECT IMPLEMENTATION: Downloads current database from Google Drive")
+            print("🔧 This is WindowsStandaloneApp.py (NOT GrandsonLibrary.py)")
             print("🚀 Starting up...")
             print()
             
@@ -611,9 +648,10 @@ def main():
     """Main entry point with comprehensive error handling for Windows EXE"""
     try:
         print("🪟 WINDOWS STANDALONE LIBRARY STARTING...")
-        print("✅ If you see this message, the EXE is working!")
+        print("🔧 IMPLEMENTATION: WindowsStandaloneApp.py (CORRECT VERSION)")
+        print("✅ If you see this message, the CORRECT EXE is working!")
         print("📥 Now downloading current database from Google Drive...")
-        print("=" * 60)
+        print("=" * 70)
         
         library = WindowsStandaloneLibrary()
         library.start_library()
