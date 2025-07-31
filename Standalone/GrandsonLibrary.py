@@ -156,7 +156,11 @@ class GrandsonLibrary:
     
     def download_database_to_path(self, target_path):
         """Download database to specific path"""
+        print(f"🔍 DIAGNOSTIC: Starting database download to {target_path}")
+        print(f"🔍 DIAGNOSTIC: Google Drive folder ID: {self.google_drive_folder_id}")
+        
         if not self.google_drive_folder_id:
+            print("❌ DIAGNOSTIC: No Google Drive folder ID configured")
             return False
             
         try:
@@ -167,43 +171,77 @@ class GrandsonLibrary:
                 'fields': 'files(id,name,size,mimeType)'
             }
             
+            print(f"🔍 DIAGNOSTIC: Making Google Drive API request")
+            print(f"🔍 DIAGNOSTIC: API URL: {api_url}")
+            print(f"🔍 DIAGNOSTIC: Query: {params['q']}")
+            
             response = requests.get(api_url, params=params, timeout=10)
+            
+            print(f"🔍 DIAGNOSTIC: API Response Status: {response.status_code}")
+            print(f"🔍 DIAGNOSTIC: Response Headers: {dict(response.headers)}")
             
             if response.status_code == 200:
                 files = response.json().get('files', [])
+                print(f"🔍 DIAGNOSTIC: Found {len(files)} files in response")
+                
+                for i, file in enumerate(files):
+                    print(f"🔍 DIAGNOSTIC: File {i+1}: {file.get('name')} (ID: {file.get('id')}, Size: {file.get('size')})")
                 
                 # Look for MyLibrary.db specifically
                 db_file = None
                 for file in files:
                     if 'MyLibrary.db' in file['name']:
                         db_file = file
+                        print(f"✅ DIAGNOSTIC: Found MyLibrary.db: {file}")
                         break
                 
                 if not db_file and files:
                     db_file = files[0]  # Use first .db file found
+                    print(f"⚠️ DIAGNOSTIC: MyLibrary.db not found, using first .db file: {db_file}")
                 
                 if db_file:
                     # Download the database
                     file_id = db_file['id']
+                    file_name = db_file['name']
+                    file_size = db_file.get('size', 'unknown')
+                    
                     download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+                    
+                    print(f"📥 DIAGNOSTIC: Downloading {file_name} (Size: {file_size} bytes)")
+                    print(f"🔍 DIAGNOSTIC: Download URL: {download_url}")
                     
                     response = requests.get(download_url, timeout=60)
                     
+                    print(f"🔍 DIAGNOSTIC: Download Response Status: {response.status_code}")
+                    print(f"🔍 DIAGNOSTIC: Downloaded {len(response.content)} bytes")
+                    
                     if response.status_code == 200:
                         # Save database
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
                         with open(target_path, 'wb') as f:
                             f.write(response.content)
+                        
+                        actual_size = target_path.stat().st_size
+                        print(f"✅ DIAGNOSTIC: Saved database to {target_path} ({actual_size} bytes)")
                         return True
                     else:
-                        print(f"❌ Download failed: HTTP {response.status_code}")
+                        print(f"❌ DIAGNOSTIC: Download failed: HTTP {response.status_code}")
+                        if response.text:
+                            print(f"🔍 DIAGNOSTIC: Error response: {response.text[:200]}")
                         return False
                 else:
+                    print("❌ DIAGNOSTIC: No database files found in Google Drive folder")
                     return False
             else:
+                print(f"❌ DIAGNOSTIC: Google Drive API request failed: HTTP {response.status_code}")
+                if response.text:
+                    print(f"🔍 DIAGNOSTIC: API Error: {response.text[:300]}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Database download error: {e}")
+            print(f"❌ DIAGNOSTIC: Database download exception: {e}")
+            import traceback
+            print(f"🔍 DIAGNOSTIC: Full traceback: {traceback.format_exc()}")
             return False
 
     def download_database_from_drive(self):
@@ -220,6 +258,54 @@ class GrandsonLibrary:
                 return False
         else:
             print("❌ Failed to download database from Google Drive")
+            print("🔄 Attempting fallback public URL download...")
+            
+            # Try fallback public download
+            if self.download_database_from_public_url():
+                print("✅ Fallback download successful!")
+                return True
+            else:
+                print("❌ All download methods failed")
+                return False
+    
+    def download_database_from_public_url(self):
+        """Try downloading from a public URL as fallback"""
+        try:
+            # Public URLs that don't require authentication
+            public_urls = [
+                "https://drive.google.com/uc?export=download&id=1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m",
+                # Add more fallback URLs here if available
+            ]
+            
+            for url in public_urls:
+                print(f"🔍 DIAGNOSTIC: Trying public URL: {url}")
+                
+                try:
+                    response = requests.get(url, timeout=60)
+                    print(f"🔍 DIAGNOSTIC: Public URL response: {response.status_code}")
+                    
+                    if response.status_code == 200 and len(response.content) > 100000:
+                        # Save database
+                        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(self.database_path, 'wb') as f:
+                            f.write(response.content)
+                        
+                        print(f"✅ DIAGNOSTIC: Downloaded {len(response.content)} bytes from public URL")
+                        
+                        # Verify database
+                        if self.verify_database():
+                            return True
+                        else:
+                            print("❌ DIAGNOSTIC: Public download failed verification")
+                    
+                except Exception as e:
+                    print(f"⚠️ DIAGNOSTIC: Public URL {url} failed: {e}")
+                    continue
+            
+            return False
+            
+        except Exception as e:
+            print(f"❌ DIAGNOSTIC: Public download exception: {e}")
             return False
     
     def verify_database(self):

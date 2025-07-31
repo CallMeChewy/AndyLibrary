@@ -156,7 +156,11 @@ class GrandsonLibrary:
     
     def download_database_to_path(self, target_path):
         """Download database to specific path"""
+        print(f"🔍 DIAGNOSTIC: Starting database download to {target_path}")
+        print(f"🔍 DIAGNOSTIC: Google Drive folder ID: {self.google_drive_folder_id}")
+        
         if not self.google_drive_folder_id:
+            print("❌ DIAGNOSTIC: No Google Drive folder ID configured")
             return False
             
         try:
@@ -166,6 +170,10 @@ class GrandsonLibrary:
                 'q': f"'{self.google_drive_folder_id}' in parents and name contains '.db'",
                 'fields': 'files(id,name,size,mimeType)'
             }
+            
+            print(f"🔍 DIAGNOSTIC: Making Google Drive API request")
+            print(f"🔍 DIAGNOSTIC: API URL: {api_url}")
+            print(f"🔍 DIAGNOSTIC: Query: {params['q']}")
             
             response = requests.get(api_url, params=params, timeout=10)
             
