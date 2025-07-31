@@ -89,9 +89,9 @@ class WindowsStandaloneLibrary:
     
     def get_current_database_folder_id(self):
         """Get the current Google Drive folder ID containing the database"""
-        # This is a fallback - we primarily use file ID
-        print("⚠️ Using fallback folder ID - file ID is preferred")
-        return "PLACEHOLDER_FOLDER_ID"
+        # REAL folder ID from screenshot: 1_JFXXXkqQBIfqlwSvJ3OkQ3Q8DCue3hA
+        print("📋 Using REAL folder ID from Google Drive screenshot")
+        return "1_JFXXXkqQBIfqlwSvJ3OkQ3Q8DCue3hA"
     
     def download_database_from_gdrive(self):
         """Download the CURRENT database from Google Drive - NO FALLBACKS"""
@@ -124,7 +124,8 @@ class WindowsStandaloneLibrary:
             print(f"🔍 DIAGNOSTIC: File ID: {self.google_drive_file_id}")
             print(f"🔍 DIAGNOSTIC: Folder ID: {self.google_drive_folder_id}")
             
-            # Try known public database URLs
+            # Try known public database URLs with REAL folder ID from screenshot
+            # Folder ID from Google Drive: 1_JFXXXkqQBIfqlwSvJ3OkQ3Q8DCue3hA
             public_urls = [
                 "https://drive.google.com/uc?export=download&id=1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m",
                 "https://drive.google.com/file/d/1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m/view?usp=sharing"
