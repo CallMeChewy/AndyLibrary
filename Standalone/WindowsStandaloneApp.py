@@ -89,9 +89,9 @@ class WindowsStandaloneLibrary:
     
     def get_current_database_folder_id(self):
         """Get the current Google Drive folder ID containing the database"""
-        # REAL folder ID from screenshot: 1_JFXXXkqQBIfqlwSvJ3OkQ3Q8DCue3hA
-        print("📋 Using REAL folder ID from Google Drive screenshot")
-        return "1_JFXXXkqQBIfqlwSvJ3OkQ3Q8DCue3hA"
+        # REAL folder ID from URL: 1_JFXXXKoQBlfqiwSvJ3OkQ3Q8DCue3hA
+        print("📋 Using REAL folder ID from Google Drive URL")
+        return "1_JFXXXKoQBlfqiwSvJ3OkQ3Q8DCue3hA"
     
     def download_database_from_gdrive(self):
         """Download the CURRENT database from Google Drive - NO FALLBACKS"""
@@ -154,19 +154,76 @@ class WindowsStandaloneLibrary:
             # Method 3: Search in folder (if we have folder ID) - with better error handling
             if self.google_drive_folder_id and self.google_drive_folder_id != "PLACEHOLDER_FOLDER_ID":
                 print("🔍 Searching for database in Google Drive folder...")
+                print(f"🔍 DIAGNOSTIC: Using REAL folder ID: {self.google_drive_folder_id}")
                 
-                api_url = "https://www.googleapis.com/drive/v3/files"
-                params = {
-                    'q': f"'{self.google_drive_folder_id}' in parents and name contains 'MyLibrary.db'",
-                    'fields': 'files(id,name,size,mimeType)'
-                }
+                # Try multiple API approaches
+                api_methods = [
+                    {
+                        'url': 'https://www.googleapis.com/drive/v3/files',
+                        'params': {
+                            'q': f"'{self.google_drive_folder_id}' in parents and name='MyLibrary.db'",
+                            'fields': 'files(id,name,size,mimeType,webContentLink)'
+                        },
+                        'name': 'Exact name search'
+                    },
+                    {
+                        'url': 'https://www.googleapis.com/drive/v3/files',
+                        'params': {
+                            'q': f"'{self.google_drive_folder_id}' in parents and name contains 'MyLibrary'",
+                            'fields': 'files(id,name,size,mimeType,webContentLink)'
+                        },
+                        'name': 'Contains name search'
+                    },
+                    {
+                        'url': 'https://www.googleapis.com/drive/v3/files',
+                        'params': {
+                            'q': f"'{self.google_drive_folder_id}' in parents and mimeType='application/octet-stream'",
+                            'fields': 'files(id,name,size,mimeType,webContentLink)'
+                        },
+                        'name': 'Binary file search'
+                    }
+                ]
                 
-                print(f"🔍 DIAGNOSTIC: Making API request to: {api_url}")
-                print(f"🔍 DIAGNOSTIC: Query parameters: {params}")
-                
-                response = requests.get(api_url, params=params, timeout=10)
-                print(f"🔍 DIAGNOSTIC: API Response status: {response.status_code}")
-                print(f"🔍 DIAGNOSTIC: API Response text: {response.text[:500]}...")
+                for i, method in enumerate(api_methods):
+                    print(f"🔗 DIAGNOSTIC: Trying method {i+1}: {method['name']}")
+                    print(f"🔍 DIAGNOSTIC: API URL: {method['url']}")
+                    print(f"🔍 DIAGNOSTIC: Query: {method['params']['q']}")
+                    
+                    try:
+                        response = requests.get(method['url'], params=method['params'], timeout=15)
+                        print(f"🔍 DIAGNOSTIC: API Response status: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            files = response.json().get('files', [])
+                            print(f"🔍 DIAGNOSTIC: Found {len(files)} files")
+                            
+                            for file in files:
+                                print(f"🔍 DIAGNOSTIC: File found: {file.get('name')} (ID: {file.get('id')})")
+                                
+                                if 'MyLibrary' in file.get('name', '') and file.get('name', '').endswith('.db'):
+                                    file_id = file['id']
+                                    download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+                                    
+                                    print(f"🎯 DIAGNOSTIC: Attempting download from found file: {download_url}")
+                                    
+                                    download_response = requests.get(download_url, timeout=60)
+                                    print(f"🔍 DIAGNOSTIC: Download response: {download_response.status_code}")
+                                    
+                                    if download_response.status_code == 200 and len(download_response.content) > 100000:
+                                        with open(self.database_path, 'wb') as f:
+                                            f.write(download_response.content)
+                                        
+                                        if self.verify_database():
+                                            print("✅ Database downloaded successfully from folder search!")
+                                            return True
+                                        else:
+                                            print("❌ Downloaded file failed database verification")
+                                    else:
+                                        print(f"❌ Download failed or file too small: {len(download_response.content)} bytes")
+                        else:
+                            print(f"🔍 DIAGNOSTIC: API Response text: {response.text[:500]}...")
+                    except Exception as e:
+                        print(f"❌ Method {i+1} error: {e}")
                 
                 if response.status_code == 200:
                     files = response.json().get('files', [])
