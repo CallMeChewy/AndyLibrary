@@ -49,6 +49,9 @@ class GrandsonLibrary:
         self.google_drive_folder_url = "https://drive.google.com/drive/folders/1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m?usp=sharing"
         self.grandpa_name = "Granddaddy"
         
+        # Bundled database - full database included in executable
+        self.bundled_database_path = self.script_dir / "GrandsonLibrary_Full.db"
+        
         # Create data directory
         self.data_dir.mkdir(exist_ok=True)
         
@@ -159,6 +162,10 @@ class GrandsonLibrary:
         print(f"🔍 DIAGNOSTIC: Starting database download to {target_path}")
         print(f"🔍 DIAGNOSTIC: Google Drive folder ID: {self.google_drive_folder_id}")
         
+        # FIRST: Try bundled database (most reliable)
+        if self.use_bundled_database():
+            return True
+        
         if not self.google_drive_folder_id:
             print("❌ DIAGNOSTIC: No Google Drive folder ID configured")
             return False
@@ -268,6 +275,36 @@ class GrandsonLibrary:
                 print("❌ All download methods failed")
                 return False
     
+    def use_bundled_database(self):
+        """Use the bundled full database if available"""
+        try:
+            print(f"🔍 DIAGNOSTIC: Checking for bundled database at {self.bundled_database_path}")
+            
+            if self.bundled_database_path.exists():
+                print(f"✅ DIAGNOSTIC: Found bundled database ({self.bundled_database_path.stat().st_size:,} bytes)")
+                
+                # Copy bundled database to target location
+                self.database_path.parent.mkdir(parents=True, exist_ok=True)
+                import shutil
+                shutil.copy2(self.bundled_database_path, self.database_path)
+                
+                print(f"✅ DIAGNOSTIC: Copied bundled database to {self.database_path}")
+                
+                # Verify the database
+                if self.verify_database():
+                    print("🎉 DIAGNOSTIC: Successfully using bundled full database!")
+                    return True
+                else:
+                    print("❌ DIAGNOSTIC: Bundled database failed verification")
+                    return False
+            else:
+                print("⚠️ DIAGNOSTIC: No bundled database found, trying downloads...")
+                return False
+                
+        except Exception as e:
+            print(f"❌ DIAGNOSTIC: Error using bundled database: {e}")
+            return False
+
     def download_database_from_public_url(self):
         """Try downloading from a public URL as fallback"""
         try:

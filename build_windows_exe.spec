@@ -38,6 +38,9 @@ datas = [
     
     # Include any additional required files
     (str(base_dir / 'CLAUDE.md'), '.'),
+    
+    # Include the FULL DATABASE for offline operation
+    (str(base_dir / 'Standalone' / 'GrandsonLibrary_Full.db'), 'Standalone'),
 ]
 
 # Hidden imports that PyInstaller might miss
