@@ -286,6 +286,62 @@ class WindowsStandaloneLibrary:
             print(f"❌ Database verification failed: {e}")
             return False
     
+    def download_book_from_drive(self, book_title):
+        """Download a specific book from Google Drive"""
+        if not self.google_drive_folder_id:
+            print("❌ No Google Drive folder ID configured")
+            return None
+            
+        try:
+            print(f"📖 Looking for book: {book_title}")
+            
+            # Search for the book file in the folder using multiple strategies
+            search_strategies = [
+                f"'{self.google_drive_folder_id}' in parents and name='{book_title}.pdf'",
+                f"'{self.google_drive_folder_id}' in parents and name contains '{book_title[:30]}'",
+                f"'{self.google_drive_folder_id}' in parents and name contains '{book_title[:20]}'",
+                f"'{self.google_drive_folder_id}' in parents and mimeType='application/pdf' and name contains '{book_title[:15]}'"
+            ]
+            
+            for i, query in enumerate(search_strategies):
+                print(f"🔍 DIAGNOSTIC: Book search strategy {i+1}: {query}")
+                
+                api_url = "https://www.googleapis.com/drive/v3/files"
+                params = {
+                    'q': query,
+                    'fields': 'files(id,name,size,mimeType,webContentLink)'
+                }
+                
+                response = requests.get(api_url, params=params, timeout=15)
+                print(f"🔍 DIAGNOSTIC: Book search response: {response.status_code}")
+                
+                if response.status_code == 200:
+                    files = response.json().get('files', [])
+                    print(f"🔍 DIAGNOSTIC: Found {len(files)} potential book files")
+                    
+                    for file in files:
+                        print(f"🔍 DIAGNOSTIC: Book file candidate: {file.get('name')} (ID: {file.get('id')})")
+                    
+                    if files:
+                        book_file = files[0]  # Use first match
+                        file_id = book_file['id']
+                        
+                        # Return download URL - let browser handle the download
+                        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+                        print(f"✅ Book download URL generated: {download_url}")
+                        return download_url
+                else:
+                    print(f"⚠️ Book search strategy {i+1} failed: {response.status_code}")
+                    if response.status_code != 200:
+                        print(f"🔍 DIAGNOSTIC: Response text: {response.text[:200]}...")
+            
+            print(f"❌ Book file not found: {book_title}")
+            return None
+            
+        except Exception as e:
+            print(f"❌ Book search error: {e}")
+            return None
+    
     def create_library_app(self):
         """Create the FastAPI library application"""
         app = FastAPI(
@@ -454,6 +510,35 @@ class WindowsStandaloneLibrary:
                 
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
+        
+        @app.get("/api/books/{book_id}/download")
+        async def download_book(book_id: int):
+            """Get download link for a book from Google Drive"""
+            try:
+                # Get book title from database
+                conn = sqlite3.connect(str(self.database_path))
+                cursor = conn.cursor()
+                cursor.execute("SELECT title FROM books WHERE id = ?", (book_id,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                if not result:
+                    raise HTTPException(status_code=404, detail="Book not found")
+                
+                book_title = result[0]
+                
+                # Get download URL from Google Drive
+                download_url = self.download_book_from_drive(book_title)
+                
+                if download_url:
+                    return {"download_url": download_url, "title": book_title}
+                else:
+                    raise HTTPException(status_code=404, detail="Book file not found on Google Drive")
+                    
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Download error: {str(e)}")
         
         @app.get("/api/mode")
         async def get_mode():
