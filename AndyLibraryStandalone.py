@@ -144,7 +144,8 @@ class AndyLibraryStandalone:
             print("1. Make sure no other programs are using ports 8000-8020")
             print("2. Try running as administrator")
             print("3. Check Windows Firewall settings")
-            input("\nPress Enter to exit...")
+            print("\nClosing in 10 seconds...")
+            time.sleep(10)
             sys.exit(1)
 
 
@@ -201,7 +202,8 @@ def main():
         launcher.start_server()
     except Exception as e:
         print(f"❌ Failed to start: {e}")
-        input("Press Enter to exit...")
+        print("Closing in 10 seconds...")
+        time.sleep(10)
         sys.exit(1)
 
 if __name__ == "__main__":
