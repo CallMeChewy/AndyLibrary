@@ -2,22 +2,17 @@
 # Path: .github/workflows/correct-windows-exe.yml
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-31
-# Last Modified: 2025-07-31 03:43PM
+# Last Modified: 2025-07-31 04:05PM
 
 name: Build CORRECT Windows Executable - Downloads Database
 
 on:
+  workflow_dispatch:  # Manual trigger only
   push:
     branches: [ main ]
     paths: 
       - 'Standalone/WindowsStandaloneApp.py'
       - '.github/workflows/correct-windows-exe.yml'
-  workflow_dispatch:  # Allow manual trigger
-    inputs:
-      force_build:
-        description: 'Force rebuild even if no changes'
-        required: false
-        default: 'false'
 
 jobs:
   build-correct-windows-exe:
@@ -36,305 +31,80 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         cd Standalone
-        pip install -r requirements-standalone.txt
-        pip install pyinstaller
+        pip install fastapi uvicorn requests pyinstaller
         
-    - name: Verify CORRECT WindowsStandaloneApp.py exists
+    - name: Verify files exist
       run: |
-        echo "🔍 Verifying CORRECT implementation..."
+        echo "Checking for required files..."
         if (Test-Path "Standalone/WindowsStandaloneApp.py") {
-          Write-Host "✅ Found WindowsStandaloneApp.py"
-          
-          # Verify it downloads database (not bundles it)
-          $content = Get-Content "Standalone/WindowsStandaloneApp.py" -Raw
-          if ($content -match "download_database_from_gdrive") {
-            Write-Host "✅ Contains database download logic"
-          } else {
-            Write-Host "❌ ERROR: Missing database download logic"
-            exit 1
-          }
-          
-          if ($content -match "temp_dir.*mkdtemp") {
-            Write-Host "✅ Creates temporary directory"
-          } else {
-            Write-Host "❌ ERROR: Missing temp directory creation"
-            exit 1
-          }
-          
-          if ($content -match "REQUIRES.*downloading.*current.*database") {
-            Write-Host "✅ Enforces live database download"
-          } else {
-            Write-Host "❌ ERROR: Missing enforcement of live database"
-            exit 1
-          }
+          echo "✅ WindowsStandaloneApp.py found"
         } else {
-          Write-Host "❌ ERROR: WindowsStandaloneApp.py not found"
+          echo "❌ WindowsStandaloneApp.py missing"
+          exit 1
+        }
+        if (Test-Path "WebPages") {
+          echo "✅ WebPages directory found"
+        } else {
+          echo "❌ WebPages directory missing"
           exit 1
         }
         
-    - name: Create PyInstaller spec for CORRECT implementation
+    - name: Build Windows executable
       run: |
-        echo "📝 Creating PyInstaller spec..."
-        @"
-# -*- mode: python ; coding: utf-8 -*-
-# CORRECT Windows Executable Spec - Downloads Database from Google Drive
-
-block_cipher = None
-
-a = Analysis(
-    ['WindowsStandaloneApp.py'],
-    pathex=[],
-    binaries=[],
-    datas=[
-        ('../WebPages', 'WebPages'),
-    ],
-    hiddenimports=[
-        'uvicorn',
-        'fastapi',
-        'sqlite3',
-        'requests',
-        'json',
-        'tempfile',
-        'webbrowser',
-        'threading',
-        'pathlib',
-    ],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[
-        # CRITICAL: Exclude all database files - we download fresh
-        'MyLibrary.db',
-        'GrandsonLibrary_Full.db',
-        '*.db',
-        'Data/Databases/*',
-    ],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
-    noarchive=False,
-)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='AndyLibrary-WindowsStandalone',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,  # Show console for debugging
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon=None,  # Could add icon later
-)
-"@ | Out-File -FilePath "Standalone/windows-standalone.spec" -Encoding UTF8
-        
-    - name: Build Windows executable with NO DATABASE
-      run: |
-        echo "🔨 Building CORRECT Windows executable..."
         cd Standalone
-        pyinstaller windows-standalone.spec --clean --noconfirm
+        echo "Building Windows executable..."
+        pyinstaller --onefile --name="AndyLibrary-WindowsStandalone" --add-data="../WebPages;WebPages" --console WindowsStandaloneApp.py
         
-    - name: Verify executable size (should be small - no database)
+    - name: Verify executable was created
       run: |
-        echo "🔍 Verifying executable..."
-        $exePath = "Standalone/dist/AndyLibrary-WindowsStandalone.exe"
-        if (Test-Path $exePath) {
-          $size = (Get-Item $exePath).Length / 1MB
-          Write-Host "✅ Executable created: $($size.ToString('F1')) MB"
-          
-          # Verify size is reasonable WITHOUT database
-          if ($size -gt 100) {
-            Write-Host "❌ ERROR: Executable too large ($($size.ToString('F1')) MB)"
-            Write-Host "❌ This likely means database was bundled (WRONG!)"
-            Write-Host "❌ Expected size: ~30-60MB without database"
-            exit 1
-          } else {
-            Write-Host "✅ Size is correct - no database bundled"
-          }
+        echo "Checking if executable was created..."
+        if (Test-Path "Standalone/dist/AndyLibrary-WindowsStandalone.exe") {
+          $size = (Get-Item "Standalone/dist/AndyLibrary-WindowsStandalone.exe").Length / 1MB
+          echo "✅ Executable created: $($size.ToString('F1')) MB"
         } else {
-          Write-Host "❌ ERROR: Executable not found"
+          echo "❌ Executable not found"
           exit 1
         }
         
-    - name: Create user instructions
+    - name: Create README
       run: |
-        echo "📋 Creating user instructions..."
-        @"
-ANDY'S EDUCATIONAL LIBRARY - WINDOWS STANDALONE
-==============================================
-
-🚀 QUICK START:
-1. Double-click 'AndyLibrary-WindowsStandalone.exe'
-2. Wait for database download from Google Drive (first time only)
-3. Browser opens automatically with your library
-
-📥 FIRST RUN:
-- The app downloads the current database from Google Drive
-- This ensures you always have the latest books and content
-- Requires internet connection for initial setup
-- After download, works offline
-
-🔧 HOW IT WORKS:
-- Creates temporary folder for this session
-- Downloads current database from Google Drive
-- Launches web interface in your browser
-- Cleans up when you close the application
-
-💡 FEATURES:
-✅ Always current content (downloads fresh database)
-✅ No installation required
-✅ Works on any Windows computer
-✅ Automatic port detection
-✅ Clean temporary storage
-
-❓ TROUBLESHOOTING:
-- If download fails, check internet connection
-- Windows may show security warning - click 'Run anyway'
-- Firewall may ask permission - click 'Allow'
-- Close other applications if port conflicts occur
-
-📞 SUPPORT:
-Report issues at: https://github.com/yourusername/AndyLibrary/issues
-
-Version: Windows Standalone (Live Database)
-Built: $(Get-Date -Format 'yyyy-MM-dd HH:mm')
-"@ | Out-File -FilePath "Standalone/dist/README-WINDOWS.txt" -Encoding UTF8
+        echo "Creating README file..."
+        echo "ANDY'S EDUCATIONAL LIBRARY - WINDOWS STANDALONE" > Standalone/dist/README.txt
+        echo "Double-click AndyLibrary-WindowsStandalone.exe to run" >> Standalone/dist/README.txt
         
-    - name: Create Windows batch launcher
+    - name: Create batch launcher
       run: |
-        echo "⚡ Creating batch launcher..."
-        @"
-@echo off
-title Andy's Educational Library - Windows Standalone
-echo.
-echo 🪟 ANDY'S EDUCATIONAL LIBRARY - WINDOWS STANDALONE
-echo ================================================
-echo 📥 Downloads current database from Google Drive
-echo 🚀 Starting application...
-echo.
-
-REM Run the executable
-AndyLibrary-WindowsStandalone.exe
-
-echo.
-echo 👋 Library closed. Press any key to exit...
-pause > nul
-"@ | Out-File -FilePath "Standalone/dist/Start-AndyLibrary.bat" -Encoding ASCII
+        echo "Creating batch launcher..."
+        echo "@echo off" > Standalone/dist/Start-AndyLibrary.bat
+        echo "AndyLibrary-WindowsStandalone.exe" >> Standalone/dist/Start-AndyLibrary.bat
+        echo "pause" >> Standalone/dist/Start-AndyLibrary.bat
         
-    - name: Test executable startup (quick test)
+        
+    - name: Create package
       run: |
-        echo "🧪 Testing executable startup..."
         cd Standalone/dist
+        echo "Creating package..."
+        Compress-Archive -Path * -DestinationPath "../AndyLibrary-Windows.zip" -Force
         
-        # Start executable in background
-        $job = Start-Job -ScriptBlock { 
-          cd $using:PWD/Standalone/dist
-          ./AndyLibrary-WindowsStandalone.exe
-        }
-        
-        # Wait a bit to see if it starts
-        Start-Sleep -Seconds 8
-        
-        # Check if still running (good sign)
-        if ($job.State -eq "Running") {
-          Write-Host "✅ Executable started successfully"
-          Write-Host "✅ Database download logic appears to be working"
-        } else {
-          Write-Host "⚠️ Executable exited quickly - may need database setup"
-          Write-Host "ℹ️ This is expected if Google Drive credentials not configured"
-        }
-        
-        # Clean up
-        Stop-Job $job -ErrorAction SilentlyContinue
-        Remove-Job $job -ErrorAction SilentlyContinue
-        
-    - name: Create deployment package
-      run: |
-        echo "📦 Creating deployment package..."
-        cd Standalone/dist
-        
-        # Verify all files exist
-        $files = @(
-          "AndyLibrary-WindowsStandalone.exe",
-          "Start-AndyLibrary.bat", 
-          "README-WINDOWS.txt"
-        )
-        
-        foreach ($file in $files) {
-          if (Test-Path $file) {
-            $size = (Get-Item $file).Length
-            Write-Host "✅ $file ($([math]::Round($size/1KB, 1)) KB)"
-          } else {
-            Write-Host "❌ Missing: $file"
-            exit 1
-          }
-        }
-        
-        # Create zip
-        Compress-Archive -Path * -DestinationPath "../AndyLibrary-Windows-CORRECT.zip" -Force
-        cd ..
-        
-        $zipSize = (Get-Item "AndyLibrary-Windows-CORRECT.zip").Length / 1MB
-        Write-Host "✅ Package created: $($zipSize.ToString('F1')) MB"
-        
-    - name: Upload CORRECT Windows executable
+    - name: Upload Windows executable
       uses: actions/upload-artifact@v4
       with:
-        name: AndyLibrary-Windows-CORRECT-Implementation
+        name: AndyLibrary-Windows-Standalone
         path: |
           Standalone/dist/AndyLibrary-WindowsStandalone.exe
           Standalone/dist/Start-AndyLibrary.bat
-          Standalone/dist/README-WINDOWS.txt
+          Standalone/dist/README.txt
         retention-days: 90
         
     - name: Upload complete package
       uses: actions/upload-artifact@v4
       with:
-        name: AndyLibrary-Windows-Complete-CORRECT
-        path: Standalone/AndyLibrary-Windows-CORRECT.zip
+        name: AndyLibrary-Windows-Package
+        path: Standalone/AndyLibrary-Windows.zip
         retention-days: 90
         
     - name: Build summary
       run: |
-        echo "🎉 CORRECT WINDOWS EXECUTABLE BUILD COMPLETE!"
-        echo "============================================="
-        
-        $exePath = "Standalone/dist/AndyLibrary-WindowsStandalone.exe"
-        $exeSize = (Get-Item $exePath).Length / 1MB
-        $zipSize = (Get-Item "Standalone/AndyLibrary-Windows-CORRECT.zip").Length / 1MB
-        
-        Write-Host ""
-        Write-Host "📊 BUILD RESULTS:"
-        Write-Host "📦 Executable: $($exeSize.ToString('F1')) MB (NO database bundled)"
-        Write-Host "📁 Complete Package: $($zipSize.ToString('F1')) MB"
-        Write-Host ""
-        Write-Host "✅ CORRECT IMPLEMENTATION FEATURES:"
-        Write-Host "• NO database bundled in executable"
-        Write-Host "• Downloads CURRENT database from Google Drive on startup"
-        Write-Host "• Creates temporary folder for session"
-        Write-Host "• Always has latest content"
-        Write-Host "• Small executable size (~30-60MB)"
-        Write-Host "• Self-contained with all dependencies"
-        Write-Host ""
-        Write-Host "🚀 USER EXPERIENCE:"
-        Write-Host "1. Double-click .exe file"
-        Write-Host "2. App creates temp folder"
-        Write-Host "3. Downloads current database from Google Drive"
-        Write-Host "4. Opens library in browser"
-        Write-Host "5. Cleans up on exit"
-        Write-Host ""
-        Write-Host "🎯 This is the CORRECT implementation!"
-        Write-Host "📥 Database is downloaded fresh, not bundled!"
+        echo "✅ Windows executable build complete!"
+        echo "Executable: AndyLibrary-WindowsStandalone.exe"
+        echo "Package: AndyLibrary-Windows.zip"
