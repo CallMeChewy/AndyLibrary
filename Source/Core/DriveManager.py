@@ -53,6 +53,9 @@ class DriveManager:
     
     def LoadConfig(self) -> Dict[str, Any]:
         """Load AndyGoogle configuration"""
+        print(f"🔍 DIAGNOSTIC: Loading config from: {self.config_path}")
+        print(f"🔍 DIAGNOSTIC: Config file exists: {os.path.exists(self.config_path)}")
+        
         default_config = {
             'google_credentials_path': 'AndyGoogle/Config/google_credentials.json',
             'local_database_path': 'AndyGoogle/Data/Local/cached_library.db',
@@ -69,15 +72,18 @@ class DriveManager:
             if os.path.exists(self.config_path):
                 with open(self.config_path, 'r') as f:
                     user_config = json.load(f)
+                    print(f"🔍 DIAGNOSTIC: Loaded user config keys: {list(user_config.keys())}")
                     default_config.update(user_config)
             else:
+                print("🔍 DIAGNOSTIC: Config file not found, creating default")
                 # Create default config file
                 os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
                 with open(self.config_path, 'w') as f:
                     json.dump(default_config, f, indent=2)
         except Exception as e:
-            print(f"Warning: Error loading config, using defaults: {e}")
+            print(f"❌ DIAGNOSTIC: Error loading config, using defaults: {e}")
         
+        print(f"🔍 DIAGNOSTIC: Final config google_credentials_path: {default_config.get('google_credentials_path')}")
         return default_config
     
     def SaveConfig(self):
@@ -180,6 +186,9 @@ class DriveManager:
     def SyncDatabaseFromDrive(self, force_download: bool = False) -> bool:
         """Sync database from Google Drive"""
         print("🔄 Starting database sync from Google Drive...")
+        print(f"🔍 DIAGNOSTIC: DriveManager config path: {self.config_path}")
+        print(f"🔍 DIAGNOSTIC: Local DB path: {self.local_db_path}")
+        print(f"🔍 DIAGNOSTIC: Force download: {force_download}")
         
         try:
             # Check if sync is needed
@@ -193,10 +202,29 @@ class DriveManager:
                         print(f"✅ Database is recent (last sync: {last_sync})")
                         return True
             
+            # Check if drive_api is initialized properly
+            print(f"🔍 DIAGNOSTIC: GoogleDriveAPI initialized: {self.drive_api is not None}")
+            if hasattr(self.drive_api, 'credentials_path'):
+                print(f"🔍 DIAGNOSTIC: Credentials path: {self.drive_api.credentials_path}")
+            
             # Get latest version from Drive
+            print("🔍 DIAGNOSTIC: Calling GetLatestDatabaseVersion()...")
             remote_info = self.drive_api.GetLatestDatabaseVersion()
+            print(f"🔍 DIAGNOSTIC: GetLatestDatabaseVersion returned: {remote_info}")
+            
             if not remote_info:
-                print("❌ Could not get database version from Google Drive")
+                print("❌ DIAGNOSTIC: Could not get database version from Google Drive")
+                print("🔍 DIAGNOSTIC: This is likely where the download is failing")
+                
+                # Try fallback public URL download
+                if self.config.get('fallback_database_enabled', False):
+                    print("🔄 DIAGNOSTIC: Attempting fallback public URL download...")
+                    if self.TryFallbackDatabaseDownload():
+                        print("✅ DIAGNOSTIC: Fallback download successful!")
+                        return True
+                    else:
+                        print("❌ DIAGNOSTIC: Fallback download also failed")
+                
                 return False
             
             # Create backup of current database
@@ -247,6 +275,44 @@ class DriveManager:
         except Exception as e:
             print(f"❌ Database sync failed: {e}")
             self.sheets_logger.LogError('database_sync_failed', str(e))
+            return False
+    
+    def TryFallbackDatabaseDownload(self) -> bool:
+        """Try to download database using public URL fallback"""
+        try:
+            import requests
+            
+            public_url = self.config.get('public_database_url')
+            if not public_url or 'PLACEHOLDER' in public_url:
+                print("❌ DIAGNOSTIC: No valid public database URL configured")
+                return False
+            
+            print(f"🔍 DIAGNOSTIC: Downloading from public URL: {public_url}")
+            
+            response = requests.get(public_url, timeout=60)
+            print(f"🔍 DIAGNOSTIC: Public download response: {response.status_code}")
+            
+            if response.status_code == 200:
+                temp_path = self.local_db_path + ".tmp"
+                
+                with open(temp_path, 'wb') as f:
+                    f.write(response.content)
+                
+                # Basic validation
+                if os.path.getsize(temp_path) > 100000:  # At least 100KB
+                    os.rename(temp_path, self.local_db_path)
+                    print(f"✅ DIAGNOSTIC: Downloaded {len(response.content)} bytes to {self.local_db_path}")
+                    return True
+                else:
+                    print("❌ DIAGNOSTIC: Downloaded file too small")
+                    os.remove(temp_path)
+                    return False
+            else:
+                print(f"❌ DIAGNOSTIC: Public download failed: HTTP {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ DIAGNOSTIC: Fallback download error: {e}")
             return False
     
     def CreateBackup(self) -> bool:

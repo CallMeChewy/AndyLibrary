@@ -36,42 +36,44 @@ class GoogleDriveAPI:
         
     def Authenticate(self) -> bool:
         """Authenticate with Google Drive API"""
+        print("🔍 DIAGNOSTIC: Starting authentication...")
+        print(f"🔍 DIAGNOSTIC: Token path: {self.token_path}")
+        print(f"🔍 DIAGNOSTIC: Token file exists: {os.path.exists(self.token_path)}")
+        
         creds = None
         
         # Load existing token
         if os.path.exists(self.token_path):
             try:
                 creds = Credentials.from_authorized_user_file(self.token_path, self.scopes)
+                print("✅ DIAGNOSTIC: Loaded existing credentials")
             except Exception as e:
-                print(f"Error loading existing credentials: {e}")
+                print(f"❌ DIAGNOSTIC: Error loading existing credentials: {e}")
         
         # If no valid credentials, request authentication
         if not creds or not creds.valid:
+            print("🔍 DIAGNOSTIC: No valid credentials, checking refresh...")
+            
             if creds and creds.expired and creds.refresh_token:
                 try:
                     creds.refresh(Request())
+                    print("✅ DIAGNOSTIC: Credentials refreshed successfully")
                 except Exception as e:
-                    print(f"Error refreshing token: {e}")
+                    print(f"❌ DIAGNOSTIC: Error refreshing token: {e}")
                     creds = None
             
             if not creds:
+                print("❌ DIAGNOSTIC: No valid credentials available")
+                print(f"🔍 DIAGNOSTIC: Credentials file exists: {os.path.exists(self.credentials_path)}")
+                
                 if not os.path.exists(self.credentials_path):
-                    raise FileNotFoundError(f"Credentials file not found: {self.credentials_path}")
+                    print(f"❌ DIAGNOSTIC: Credentials file not found: {self.credentials_path}")
+                    return False
                 
-                # Run OAuth flow
-                flow = Flow.from_client_secrets_file(self.credentials_path, self.scopes)
-                flow.redirect_uri = 'http://localhost:8080/callback'
-                
-                # Get authorization URL
-                auth_url, _ = flow.authorization_url(prompt='consent')
-                print(f"Please visit this URL to authorize the application: {auth_url}")
-                
-                # Get authorization code from user
-                auth_code = input("Enter the authorization code: ")
-                
-                # Exchange code for credentials
-                flow.fetch_token(code=auth_code)
-                creds = flow.credentials
+                # For Windows executable, skip interactive auth
+                print("❌ DIAGNOSTIC: Interactive authentication not supported in executable")
+                print("🔍 DIAGNOSTIC: This is likely why database download is failing")
+                return False
         
         # Save credentials for future use
         os.makedirs(os.path.dirname(self.token_path), exist_ok=True)
@@ -201,28 +203,59 @@ class GoogleDriveAPI:
     
     def GetLatestDatabaseVersion(self) -> Optional[Dict[str, Any]]:
         """Get information about the latest database version"""
-        if not self.service:
-            if not self.Authenticate():
-                return None
+        print("🔍 DIAGNOSTIC: GetLatestDatabaseVersion called")
+        print(f"🔍 DIAGNOSTIC: Service initialized: {self.service is not None}")
+        print(f"🔍 DIAGNOSTIC: Credentials path: {self.credentials_path}")
+        print(f"🔍 DIAGNOSTIC: Credentials file exists: {os.path.exists(self.credentials_path)}")
         
+        if not self.service:
+            print("🔍 DIAGNOSTIC: Service not initialized, attempting authentication...")
+            if not self.Authenticate():
+                print("❌ DIAGNOSTIC: Authentication failed")
+                return None
+            else:
+                print("✅ DIAGNOSTIC: Authentication successful")
+        
+        print("🔍 DIAGNOSTIC: Getting AndyLibrary folder...")
         folder_id = self.GetOrCreateAndyLibraryFolder()
+        print(f"🔍 DIAGNOSTIC: Folder ID: {folder_id}")
+        
         if not folder_id:
+            print("❌ DIAGNOSTIC: Could not get/create folder")
             return None
         
         try:
-            # Search for database files in AndyLibrary folder
-            query = f"'{folder_id}' in parents and name contains 'AndersonLibrary_v' and trashed=false"
-            results = self.service.files().list(
-                q=query,
-                fields="files(id,name,size,modifiedTime,description)",
-                orderBy="modifiedTime desc"
-            ).execute()
+            # Search for database files in AndyLibrary folder - try multiple patterns
+            search_patterns = [
+                f"'{folder_id}' in parents and name contains 'AndersonLibrary_v' and trashed=false",
+                f"'{folder_id}' in parents and name contains 'MyLibrary' and trashed=false",
+                f"'{folder_id}' in parents and name contains '.db' and trashed=false"
+            ]
             
-            files = results.get('files', [])
-            if not files:
+            all_files = []
+            for i, query in enumerate(search_patterns):
+                print(f"🔍 DIAGNOSTIC: Search pattern {i+1}: {query}")
+                
+                results = self.service.files().list(
+                    q=query,
+                    fields="files(id,name,size,modifiedTime,description)",
+                    orderBy="modifiedTime desc"
+                ).execute()
+                
+                files = results.get('files', [])
+                print(f"🔍 DIAGNOSTIC: Found {len(files)} files with pattern {i+1}")
+                
+                for file in files:
+                    print(f"🔍 DIAGNOSTIC: File: {file['name']} (ID: {file['id']}, Size: {file.get('size', 'unknown')})")
+                    all_files.append(file)
+            
+            if not all_files:
+                print("❌ DIAGNOSTIC: No database files found in any search pattern")
                 return None
             
-            latest_file = files[0]
+            # Use the first file found (most recent due to orderBy)
+            latest_file = all_files[0]
+            print(f"✅ DIAGNOSTIC: Using latest file: {latest_file['name']}")
             
             # Extract version from filename
             filename = latest_file['name']

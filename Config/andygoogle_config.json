@@ -16,5 +16,7 @@
   "api_logging_enabled": true,
   "usage_analytics_enabled": true,
   "batch_upload_threshold": 50,
-  "error_reporting_enabled": true
+  "error_reporting_enabled": true,
+  "public_database_url": "https://drive.google.com/uc?export=download&id=PLACEHOLDER_FILE_ID",
+  "fallback_database_enabled": true
 }
