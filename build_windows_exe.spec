@@ -2,7 +2,7 @@
 # Path: /home/herb/Desktop/AndyLibrary/build_windows_exe.spec
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-30
-# Last Modified: 2025-08-01 09:30PM
+# Last Modified: 2025-08-01 10:42PM
 
 """
 PyInstaller spec file for AndyLibrary Windows .exe
@@ -39,8 +39,9 @@ datas = [
     # Include any additional required files
     (str(base_dir / 'CLAUDE.md'), '.'),
     
-    # Include the FULL DATABASE for offline operation
-    (str(base_dir / 'Standalone' / 'GrandsonLibrary_Full.db'), 'Standalone'),
+    # Include the FULL DATABASE for offline operation - LATEST VERSION
+    (str(base_dir / 'Public' / 'GrandsonLibrary_Full_20250731_1319.db'), 'Data/Databases'),
+    (str(base_dir / 'Public' / 'GrandsonLibrary_Full_20250731_1319.db'), 'Standalone'),
 ]
 
 # Hidden imports that PyInstaller might miss - COMPREHENSIVE LIST
@@ -134,9 +135,9 @@ hiddenimports = [
     'traceback',
 ]
 
-# Analysis configuration
+# Analysis configuration - USE MAIN LAUNCHER
 a = Analysis(
-    ['AndyLibraryStandalone.py'],
+    ['StartAndyGoogle.py'],
     pathex=[str(base_dir)],
     binaries=[],
     datas=datas,
