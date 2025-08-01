@@ -1,0 +1,76 @@
+# File: build-grandson-exe.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/build-grandson-exe.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-08-01
+# Last Modified: 2025-08-01 09:20PM
+
+name: Build Grandson Library Windows EXE
+
+on:
+  push:
+    paths:
+      - 'Standalone/GrandsonLibrary.py'
+      - '.github/workflows/build-grandson-exe.yml'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Build reason'
+        required: false
+        default: 'Manual build'
+
+jobs:
+  build-windows-exe:
+    name: 🎓 Build Educational Library EXE
+    runs-on: windows-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller fastapi uvicorn requests aiofiles
+        
+    - name: 📚 Setup database for bundling
+      shell: cmd
+      run: |
+        echo Setting up database for Windows executable...
+        if exist "Standalone\\MyLibrary.db" (
+          echo ✅ Found MyLibrary.db - ready for bundling
+          dir "Standalone\\MyLibrary.db"
+        ) else if exist "Standalone\\GrandsonLibrary_Full.db" (
+          echo ✅ Found GrandsonLibrary_Full.db - copying as MyLibrary.db
+          copy "Standalone\\GrandsonLibrary_Full.db" "Standalone\\MyLibrary.db"
+        ) else (
+          echo ❌ No database found - executable will use demo mode
+        )
+        
+    - name: 🔧 Build Windows EXE
+      shell: cmd
+      run: |
+        cd Standalone
+        pyinstaller --onefile --console --name "GrandsonLibrary" --add-data "MyLibrary.db;." --add-data "../WebPages;WebPages" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" --hidden-import "requests" --hidden-import "sqlite3" --hidden-import "threading" --hidden-import "webbrowser" GrandsonLibrary.py
+        
+    - name: ✅ Verify build
+      shell: cmd
+      run: |
+        if exist "Standalone\\dist\\GrandsonLibrary.exe" (
+          echo ✅ BUILD SUCCESS - GrandsonLibrary.exe created
+          dir "Standalone\\dist\\GrandsonLibrary.exe"
+        ) else (
+          echo ❌ BUILD FAILED - No executable found
+          exit 1
+        )
+        
+    - name: 📤 Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: GrandsonLibrary-Windows-EXE
+        path: Standalone/dist/GrandsonLibrary.exe
+        retention-days: 30
