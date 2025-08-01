@@ -24,4 +24,4 @@ The executable will be a true standalone .exe that:
 - Works on any Windows machine
 - Double-click to run
 
-Ready for deployment!
+Ready for deployment!# FORCED BUILD TRIGGER Fri Aug  1 09:27:18 AM EDT 2025
