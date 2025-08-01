@@ -2,9 +2,9 @@
 # Path: /home/herb/Desktop/AndyLibrary/.github/workflows/grandson-library-build.yml
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-30
-# Last Modified: 2025-07-30 05:10PM
+# Last Modified: 2025-08-01 05:20PM
 
-name: Build Grandson's Library Windows EXE
+name: Build Grandson's Library Windows EXE - UPDATED
 
 on:
   push:
@@ -38,18 +38,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller fastapi uvicorn requests aiofiles
         
-    - name: 📚 Setup database for grandson
+    - name: 📚 Setup database for grandson - FIXED PATHS
       shell: cmd
       run: |
-        echo Checking for database files...
-        if exist "Data\Databases\MyLibrary.db" (
-          echo Database found in Data/Databases/
-          copy "Data\Databases\MyLibrary.db" "Standalone\MyLibrary.db"
-          echo Database copied for grandson
-        ) else if exist "Standalone\MyLibrary.db" (
-          echo Database already in Standalone directory  
+        echo Checking for database files in multiple locations...
+        if exist "Standalone\MyLibrary.db" (
+          echo ✅ Database found: Standalone\MyLibrary.db
+          dir "Standalone\MyLibrary.db"
+        ) else if exist "Standalone\GrandsonLibrary_Full.db" (
+          echo ✅ Database found: Standalone\GrandsonLibrary_Full.db
+          copy "Standalone\GrandsonLibrary_Full.db" "Standalone\MyLibrary.db"
+          echo ✅ Database copied as MyLibrary.db
+        ) else if exist "Public\GrandsonLibrary_Full_20250731_1319.db" (
+          echo ✅ Database found: Public folder
+          copy "Public\GrandsonLibrary_Full_20250731_1319.db" "Standalone\MyLibrary.db"
+          echo ✅ Database copied from Public folder
         ) else (
-          echo No database found - grandson will get demo library
+          echo ❌ No database found - grandson will get demo library
+          echo Available files in Standalone:
+          dir "Standalone\"
         )
         
     - name: 🔧 Build Windows EXE with PyInstaller  
