@@ -54,7 +54,7 @@ class GrandsonLibrary:
         
         print(f"📋 DIAGNOSTIC: Initialized with trusted folder: {self.google_drive_folder_id}")
         print(f"📋 DIAGNOSTIC: Will look for bundled database at: {self.bundled_database_path}")
-        print(f"📋 DIAGNOSTIC: Build trigger - all folder ID fixes applied")
+        print(f"📋 DIAGNOSTIC: Clean workflow build - trusted folder ready")
         
         # Create data directory
         self.data_dir.mkdir(exist_ok=True)
