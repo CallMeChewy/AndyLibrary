@@ -672,6 +672,49 @@ class GrandsonLibrary:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
         
+        @app.get("/api/books")
+        async def get_all_books(limit: int = 100):
+            """Get all books - main library listing"""
+            try:
+                conn = sqlite3.connect(str(self.database_path))
+                cursor = conn.cursor()
+                
+                # Get all books with proper column names
+                sql = """
+                SELECT id, title, author, 
+                       COALESCE(category_id, 'Uncategorized') as category,
+                       COALESCE(FileSize, 0) as file_size,
+                       COALESCE(ThumbnailImage, '') as thumbnail,
+                       COALESCE(Notes, '') as description
+                FROM books 
+                ORDER BY title 
+                LIMIT ?
+                """
+                
+                cursor.execute(sql, (limit,))
+                books = []
+                for row in cursor.fetchall():
+                    books.append({
+                        "id": row[0],
+                        "title": row[1],
+                        "author": row[2] or "Unknown",
+                        "category": row[3],
+                        "file_size": row[4],
+                        "thumbnail": row[5],
+                        "description": row[6]
+                    })
+                
+                conn.close()
+                return {
+                    "books": books,
+                    "total": len(books),
+                    "message": f"Found {len(books)} books in Granddaddy's library"
+                }
+                
+            except Exception as e:
+                print(f"❌ Database error in get_all_books: {e}")
+                raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
         @app.get("/api/books/search")
         async def search_books(query: str = "", category: str = "", limit: int = 100):
             """Search books - simple and fast"""
