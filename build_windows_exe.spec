@@ -43,10 +43,19 @@ datas = [
     (str(base_dir / 'Standalone' / 'GrandsonLibrary_Full.db'), 'Standalone'),
 ]
 
-# Hidden imports that PyInstaller might miss
+# Hidden imports that PyInstaller might miss - COMPREHENSIVE LIST
 hiddenimports = [
+    # FastAPI and Uvicorn core
     'fastapi',
+    'fastapi.routing',
+    'fastapi.responses',
+    'fastapi.staticfiles',
+    'fastapi.middleware',
+    'fastapi.middleware.cors',
     'uvicorn',
+    'uvicorn.main',
+    'uvicorn.server',
+    'uvicorn.config',
     'uvicorn.lifespan',
     'uvicorn.lifespan.on',
     'uvicorn.loops',
@@ -56,6 +65,20 @@ hiddenimports = [
     'uvicorn.protocols.http.auto',
     'uvicorn.protocols.websockets',
     'uvicorn.protocols.websockets.auto',
+    
+    # Starlette (FastAPI dependency)
+    'starlette',
+    'starlette.applications',
+    'starlette.middleware',
+    'starlette.middleware.base',
+    'starlette.middleware.cors',
+    'starlette.responses',
+    'starlette.staticfiles',
+    'starlette.routing',
+    'starlette.requests',
+    'starlette.background',
+    
+    # Python standard library
     'sqlite3',
     'json',
     'pathlib',
@@ -63,21 +86,52 @@ hiddenimports = [
     'socket',
     'threading',
     'webbrowser',
+    'platform',
+    'os',
+    'sys',
+    'time',
+    'shutil',
+    'urllib.parse',
+    're',
+    
+    # Third-party dependencies
+    'requests',
+    'pydantic',
+    'pydantic.fields',
+    'pydantic.main',
+    'pydantic.types',
+    'cryptography',
+    'cryptography.fernet',
+    'psutil',
+    
+    # Google API libraries (optional)
     'google.auth',
     'google_auth_oauthlib',
     'google.oauth2.credentials',
     'googleapiclient',
-    'cryptography.fernet',
-    'pydantic',
-    'starlette',
-    'starlette.applications',
-    'starlette.middleware',
-    'starlette.responses',
-    'starlette.staticfiles',
-    'starlette.routing',
-    'psutil',  # Required for system monitoring
-    'requests',  # Required for HTTP requests
-    'platform',  # Required for system platform detection
+    'googleapiclient.discovery',
+    'googleapiclient.errors',
+    
+    # AsyncIO support
+    'asyncio',
+    'asyncio.events',
+    'asyncio.coroutines',
+    
+    # Typing support
+    'typing',
+    'typing_extensions',
+    
+    # Email and networking
+    'email',
+    'email.mime',
+    'email.mime.text',
+    'email.mime.multipart',
+    
+    # Additional utilities
+    'collections',
+    'functools',
+    'itertools',
+    'traceback',
 ]
 
 # Analysis configuration

@@ -83,9 +83,69 @@ class AndyLibraryStandalone:
         
         raise RuntimeError("No available ports found in range")
     
+    def create_standalone_app(self):
+        """Create a minimal FastAPI app when full API is not available"""
+        from fastapi import FastAPI, HTTPException
+        from fastapi.responses import HTMLResponse, JSONResponse
+        from fastapi.staticfiles import StaticFiles
+        
+        app = FastAPI(
+            title="AndyLibrary Standalone",
+            description="Educational Library - Standalone Mode",
+            version="1.0.0"
+        )
+        
+        @app.get("/", response_class=HTMLResponse)
+        async def home():
+            return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>AndyLibrary - Educational Library</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+                    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    h1 { color: #4CAF50; text-align: center; }
+                    .status { text-align: center; padding: 20px; background: #e8f5e8; border-radius: 5px; margin: 20px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>🎓 AndyLibrary Educational Platform</h1>
+                    <div class="status">
+                        <h2>✅ Standalone Mode Active</h2>
+                        <p>Your educational library is running in standalone mode.</p>
+                        <p>For full functionality, ensure all source files are properly bundled.</p>
+                    </div>
+                    <p><strong>API Endpoints:</strong></p>
+                    <ul>
+                        <li><a href="/health">/health</a> - System status</li>
+                        <li><a href="/api/health">/api/health</a> - Health check</li>
+                    </ul>
+                </div>
+            </body>
+            </html>
+            """
+        
+        @app.get("/health")
+        @app.get("/api/health")
+        async def health_check():
+            return {
+                "status": "healthy",
+                "mode": "standalone",
+                "message": "AndyLibrary is running in standalone mode",
+                "version": "1.0.0"
+            }
+        
+        return app
+    
     def start_server(self):
         """Start the FastAPI server with automatic port discovery"""
         try:
+            # Initialize database first
+            if not InitializeWindowsDatabase():
+                print("⚠️ Database initialization failed - using demo mode")
+            
             # Find available port
             self.port = self.find_available_port(8000)
             
@@ -100,8 +160,16 @@ class AndyLibraryStandalone:
             # Set environment for local mode
             os.environ['ANDYGOOGLE_MODE'] = 'local'
             
-            # Import and start FastAPI server
-            from Source.API.MainAPI import app
+            # Try to import the main API, fallback to standalone mode
+            try:
+                from Source.API.MainAPI import app
+                print("✅ Using full AndyLibrary API")
+                self.use_full_api = True
+            except ImportError as e:
+                print(f"⚠️ MainAPI not available ({e}), using standalone mode")
+                app = self.create_standalone_app()
+                self.use_full_api = False
+            
             import uvicorn
             
             # Start server in a separate thread
@@ -118,15 +186,27 @@ class AndyLibraryStandalone:
             server_thread.start()
             
             # Wait for server to start
-            time.sleep(2)
+            print("🔄 Starting web server...")
+            time.sleep(3)
+            
+            # Test if server is responding
+            try:
+                import requests
+                response = requests.get(f"http://127.0.0.1:{self.port}/", timeout=5)
+                if response.status_code == 200:
+                    print("✅ Web server is responding")
+                else:
+                    print(f"⚠️ Server responded with status {response.status_code}")
+            except Exception as test_e:
+                print(f"⚠️ Server test failed: {test_e}")
             
             # Open web browser to library
-            library_url = f"http://127.0.0.1:{self.port}/library"
+            library_url = f"http://127.0.0.1:{self.port}"
             print(f"🌐 Opening browser to: {library_url}")
             webbrowser.open(library_url)
             
             print("\n✅ AndyLibrary is ready!")
-            print("📖 Browse 1,219 books across 26 categories")
+            print("📖 Educational Library for Everyone")
             print("🔍 Search, read, and learn!")
             print("\n💡 Close this window to stop the library")
             print("=" * 60)
