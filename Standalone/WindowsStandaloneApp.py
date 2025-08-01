@@ -3,7 +3,7 @@
 # Path: /home/herb/Desktop/AndyLibrary/Standalone/WindowsStandaloneApp.py
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-31
-# Last Modified: 2025-08-01 04:15PM
+# Last Modified: 2025-08-01 04:18PM
 
 """
 Windows Standalone Library - Downloads Current Database from Google Drive
@@ -89,9 +89,10 @@ class WindowsStandaloneLibrary:
     
     def get_current_database_folder_id(self):
         """Get the current Google Drive folder ID containing the database"""
-        # REAL folder ID from URL: 1_JFXXXKoQBlfqiwSvJ3OkQ3Q8DCue3hA
-        print("📋 Using REAL folder ID from Google Drive URL")
-        return "1_JFXXXKoQBlfqiwSvJ3OkQ3Q8DCue3hA"
+        # TRUSTED WINDOWS MACHINE - Direct access to library filesystem
+        # Folder ID from: https://drive.google.com/drive/folders/1d_LbPby6QCkJm7LYxTZjZ_D8aB_KIDUP?usp=drive_link
+        print("📋 Using TRUSTED Windows machine folder ID with library access")
+        return "1d_LbPby6QCkJm7LYxTZjZ_D8aB_KIDUP"
     
     def download_database_from_gdrive(self):
         """Download the CURRENT database from Google Drive - NO FALLBACKS"""
