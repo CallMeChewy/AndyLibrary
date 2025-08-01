@@ -1,1 +1,1 @@
-# Trigger Windows build - Thu Jul 31 11:12:11 AM EDT 2025
+# Trigger Windows build with trusted folder access - Thu Aug 01 04:20:00 PM EDT 2025
