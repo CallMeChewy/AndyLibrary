@@ -1,0 +1,54 @@
+# File: build-windows.yml
+# Path: /home/herb/Desktop/AndyLibrary/.github/workflows/build-windows.yml
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-08-01
+# Last Modified: 2025-08-01 10:47PM
+
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller fastapi uvicorn[standard] requests aiofiles
+        pip install google-auth google-auth-oauthlib google-auth-httplib2
+        pip install googleapiclient cryptography pydantic starlette psutil
+        
+    - name: Create standalone executable
+      run: |
+        pyinstaller --onefile --console --name "AndyLibrary" --add-data "WebPages;WebPages" --add-data "Source;Source" --add-data "Config;Config" --add-data "Data;Data" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" StartAndyGoogle.py
+        
+    - name: Verify executable
+      run: |
+        if (Test-Path "dist\AndyLibrary.exe") {
+          Write-Host "✅ AndyLibrary.exe created successfully"
+          $size = (Get-Item "dist\AndyLibrary.exe").Length
+          Write-Host "📊 Size: $([math]::Round($size/1MB, 2)) MB"
+        } else {
+          Write-Host "❌ Build failed"
+          exit 1
+        }
+        
+    - name: Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: AndyLibrary-Windows
+        path: dist/AndyLibrary.exe
+        retention-days: 30
