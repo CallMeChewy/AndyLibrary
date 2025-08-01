@@ -31,90 +31,10 @@ jobs:
         pip install google-auth google-auth-oauthlib google-auth-httplib2
         pip install googleapiclient cryptography pydantic starlette psutil
         
-    - name: Create PyInstaller spec file
+    - name: Build Windows executable
       run: |
-        echo "Creating PyInstaller spec file..."
-        $specContent = @"
-# -*- mode: python ; coding: utf-8 -*-
-import os
-from pathlib import Path
-
-base_dir = Path('.')
-
-a = Analysis(
-    ['StartAndyGoogle.py'],
-    pathex=[],
-    binaries=[],
-    datas=[
-        ('WebPages', 'WebPages'),
-        ('Source', 'Source'),
-        ('Config', 'Config'),
-        ('Data', 'Data'),
-        ('Public', 'Public'),
-    ],
-    hiddenimports=[
-        'uvicorn.protocols.websockets.auto',
-        'uvicorn.protocols.http.auto',
-        'fastapi.routing',
-        'fastapi.responses',
-        'fastapi.staticfiles',
-        'fastapi.middleware.cors',
-        'uvicorn.main',
-        'uvicorn.server',
-        'uvicorn.config',
-        'sqlite3',
-        'json',
-        'pathlib',
-        'datetime',
-        'socket',
-        'threading',
-        'webbrowser',
-        'platform',
-        'requests',
-        'pydantic',
-        'cryptography',
-        'psutil',
-    ],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=None,
-    noarchive=False,
-)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=None)
-
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='AndyLibrary',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-)
-"@
-        $specContent | Out-File -FilePath "andylibrary.spec" -Encoding UTF8
-        
-    - name: Build executable with spec file
-      run: |
-        echo "Building executable..."
-        pyinstaller --clean andylibrary.spec
+        echo "Building Windows executable with full API..."
+        pyinstaller --onefile --console --name "AndyLibrary" --add-data "WebPages;WebPages" --add-data "Source;Source" --add-data "Config;Config" --add-data "Data;Data" --add-data "Public;Public" StartAndyGoogle.py
         
     - name: Verify executable
       run: |
