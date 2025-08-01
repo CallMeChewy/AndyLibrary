@@ -39,7 +39,6 @@ jobs:
         pip install pyinstaller
         pip install fastapi uvicorn[standard]
         pip install requests aiofiles
-        pip install sqlite3 pathlib datetime json socket threading webbrowser
         pip install google-auth google-auth-oauthlib google-auth-httplib2
         pip install googleapiclient cryptography pydantic starlette psutil
         
