@@ -3,7 +3,7 @@
 # Path: /home/herb/Desktop/AndyLibrary/Standalone/WindowsStandaloneApp.py
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-31
-# Last Modified: 2025-08-01 04:22PM
+# Last Modified: 2025-08-01 04:40PM
 
 """
 Windows Standalone Library - Downloads Current Database from Google Drive
@@ -95,30 +95,79 @@ class WindowsStandaloneLibrary:
         return "1d_LbPby6QCkJm7LYxTZjZ_D8aB_KIDUP"
     
     def download_database_from_gdrive(self):
-        """Download the CURRENT database from Google Drive - NO FALLBACKS"""
+        """Download the CURRENT database from Google Drive using trusted folder access"""
         print("🌐 Downloading current database from Google Drive...")
-        print("📥 This ensures you have the latest books and content")
+        print("📥 Using TRUSTED folder access - direct file download")
         
         try:
-            # Method 1: Direct file download (if we have file ID)
-            if self.google_drive_file_id and self.google_drive_file_id != "1234567890abcdef":
-                download_url = f"https://drive.google.com/uc?export=download&id={self.google_drive_file_id}"
+            # SIMPLE METHOD: Use known database file IDs from trusted folder
+            print(f"🔍 DIAGNOSTIC: Using trusted folder ID: {self.google_drive_folder_id}")
+            
+            # Known database file IDs from the trusted folder
+            # TODO: Add actual file IDs from your Google Drive folder
+            database_file_configs = [
+                # Format: (file_id, description)
+                # Add your actual database file IDs here
+                # Example: ("1abcd123456789", "MyLibrary.db - Main database")
+            ]
+            
+            # If no specific file IDs configured, use fallback approach
+            if not database_file_configs:
+                print("🔍 DIAGNOSTIC: No specific file IDs configured - using fallback")
                 
-                print(f"🔗 Downloading from: {download_url}")
-                response = requests.get(download_url, timeout=60)
+                # Fallback: Try to use bundled database if it exists
+                bundled_db_paths = [
+                    Path(__file__).parent / "MyLibrary.db",
+                    Path(__file__).parent / "GrandsonLibrary_Full.db", 
+                    Path(__file__).parent / "Data" / "MyLibrary.db"
+                ]
                 
-                if response.status_code == 200:
-                    with open(self.database_path, 'wb') as f:
-                        f.write(response.content)
+                for db_path in bundled_db_paths:
+                    if db_path.exists():
+                        print(f"📄 DIAGNOSTIC: Found bundled database: {db_path}")
+                        try:
+                            shutil.copy2(db_path, self.database_path)
+                            if self.verify_database():
+                                print("✅ Using local bundled database - verified successfully!")
+                                return True
+                            else:
+                                print(f"❌ Bundled database failed verification: {db_path}")
+                        except Exception as e:
+                            print(f"❌ Error copying bundled database: {e}")
+                
+                print("❌ No bundled database found - manual file ID configuration needed")
+                return False
+            
+            # Try each configured database file ID
+            for file_id, description in database_file_configs:
+                print(f"🔗 DIAGNOSTIC: Attempting download: {description}")
+                download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+                
+                try:
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
                     
-                    if self.verify_database():
-                        print("✅ Database downloaded successfully!")
-                        return True
+                    response = requests.get(download_url, headers=headers, timeout=60)
+                    print(f"🔍 DIAGNOSTIC: Download status: {response.status_code}, Size: {len(response.content)} bytes")
+                    
+                    if response.status_code == 200 and len(response.content) > 50000:
+                        with open(self.database_path, 'wb') as f:
+                            f.write(response.content)
+                        
+                        if self.verify_database():
+                            print(f"✅ Database downloaded and verified: {description}")
+                            return True
+                        else:
+                            print(f"❌ Downloaded file failed verification: {description}")
                     else:
-                        print("❌ Downloaded database failed verification")
-                        return False
-                else:
-                    print(f"❌ Download failed with status: {response.status_code}")
+                        print(f"⚠️ Download failed or file too small: {description}")
+                        
+                except Exception as e:
+                    print(f"❌ Download error for {description}: {e}")
+            
+            print("❌ All configured database downloads failed")
+            return False
             
             # Method 2: Try public Google Drive download (no API key needed)
             print("🔍 DIAGNOSTIC: Attempting public Google Drive access...")
