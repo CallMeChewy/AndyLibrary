@@ -50,16 +50,7 @@ jobs:
         }
         
         # Verify database has content
-        python -c "
-import sqlite3
-conn = sqlite3.connect('Standalone/MyLibrary.db')
-cursor = conn.cursor()
-cursor.execute('SELECT COUNT(*) FROM books')
-count = cursor.fetchone()[0]
-print(f'Database verified: {count} books')
-conn.close()
-assert count > 1000, f'Database too small: {count} books'
-"
+        python -c "import sqlite3; conn = sqlite3.connect('Standalone/MyLibrary.db'); cursor = conn.cursor(); cursor.execute('SELECT COUNT(*) FROM books'); count = cursor.fetchone()[0]; print(f'Database verified: {count} books'); conn.close(); assert count > 1000, f'Database too small: {count} books'"
         
     - name: Build Windows executable
       run: |
