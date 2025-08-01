@@ -2,7 +2,7 @@
 # This file forces GitHub Actions to rebuild the Windows executable
 # Last updated: 2025-08-01 09:25PM
 
-Windows EXE Build Status: READY
+Windows EXE Build Status: TRIGGERING BUILD (Fixed pip install issue)
 
 Build Configuration:
 - ✅ AndyLibraryStandalone.py (bulletproof launcher)
