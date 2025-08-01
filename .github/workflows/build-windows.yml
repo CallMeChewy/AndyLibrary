@@ -31,9 +31,10 @@ jobs:
         pip install google-auth google-auth-oauthlib google-auth-httplib2
         pip install googleapiclient cryptography pydantic starlette psutil
         
-    - name: Create standalone executable
+    - name: Create standalone executable  
       run: |
-        pyinstaller --onefile --console --name "AndyLibrary" --add-data "WebPages;WebPages" --add-data "Source;Source" --add-data "Config;Config" --add-data "Data;Data" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" StartAndyGoogle.py
+        echo "Building with full API functionality..."
+        pyinstaller --onefile --console --name "AndyLibrary" --add-data "WebPages;WebPages" --add-data "Source;Source" --add-data "Config;Config" --add-data "Data;Data" --add-data "Public;Public" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" --hidden-import "fastapi.middleware.cors" --hidden-import "Source.API.MainAPI" --hidden-import "Source.Core.DatabaseManager" --hidden-import "Source.Core.DriveManager" StartAndyGoogle.py
         
     - name: Verify executable
       run: |
