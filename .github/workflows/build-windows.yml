@@ -36,7 +36,10 @@ jobs:
     - name: Build Windows executable
       run: |
         echo "Building Windows executable with full API..."
-        pyinstaller --onefile --console --name "AndyLibrary" --add-data "WebPages;WebPages" --add-data "Source;Source" --add-data "Config;Config" --add-data "Data;Data" --add-data "Public;Public" StartAndyGoogle.py
+        echo "Checking directory structure..."
+        Get-ChildItem -Path . -Directory | Select-Object Name
+        echo "Building executable..."
+        pyinstaller --onefile --console --name "AndyLibrary" --add-data "WebPages;WebPages" --add-data "Source;Source" --add-data "Config;Config" --add-data "Data;Data" StartAndyGoogle.py
         
     - name: Verify executable
       run: |
