@@ -3,7 +3,7 @@
 # Path: /home/herb/Desktop/AndyLibrary/Standalone/GrandsonLibrary.py
 # Standard: AIDEV-PascalCase-2.1
 # Created: 2025-07-30
-# Last Modified: 2025-07-30 03:00PM
+# Last Modified: 2025-08-01 05:10PM
 
 """
 Grandson's Educational Library - Standalone Google Drive Access
@@ -43,14 +43,17 @@ class GrandsonLibrary:
         self.port = 8080  # Use different port to avoid conflicts
         self.app = None
         
-        # Google Drive configuration - HARD CODED FOR GRANDSON
-        # Granddaddy's shared Google Drive folder
-        self.google_drive_folder_id = "1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m"  # TEMP - will change soon
-        self.google_drive_folder_url = "https://drive.google.com/drive/folders/1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m?usp=sharing"
+        # Google Drive configuration - TRUSTED WINDOWS MACHINE ACCESS
+        # Trusted folder with library filesystem access
+        self.google_drive_folder_id = "1d_LbPby6QCkJm7LYxTZjZ_D8aB_KIDUP"  # TRUSTED FOLDER ACCESS
+        self.google_drive_folder_url = "https://drive.google.com/drive/folders/1d_LbPby6QCkJm7LYxTZjZ_D8aB_KIDUP?usp=sharing"
         self.grandpa_name = "Granddaddy"
         
-        # Bundled database - full database included in executable
+        # Bundled database - full database included in executable  
         self.bundled_database_path = self.script_dir / "GrandsonLibrary_Full.db"
+        
+        print(f"📋 DIAGNOSTIC: Initialized with trusted folder: {self.google_drive_folder_id}")
+        print(f"📋 DIAGNOSTIC: Will look for bundled database at: {self.bundled_database_path}")
         
         # Create data directory
         self.data_dir.mkdir(exist_ok=True)
@@ -158,12 +161,14 @@ class GrandsonLibrary:
             print(f"⚠️ Background update error: {e}")
     
     def download_database_to_path(self, target_path):
-        """Download database to specific path"""
+        """Download database to specific path - IMPROVED LOGIC"""
         print(f"🔍 DIAGNOSTIC: Starting database download to {target_path}")
-        print(f"🔍 DIAGNOSTIC: Google Drive folder ID: {self.google_drive_folder_id}")
+        print(f"🔍 DIAGNOSTIC: Using trusted folder ID: {self.google_drive_folder_id}")
         
-        # FIRST: Try bundled database (most reliable)
+        # FIRST: Try bundled database (most reliable - skip Google Drive)
+        print("📦 DIAGNOSTIC: Attempting bundled database first (skipping Google Drive API)...")
         if self.use_bundled_database():
+            print("✅ DIAGNOSTIC: Successfully using bundled database - no download needed!")
             return True
         
         if not self.google_drive_folder_id:
@@ -276,34 +281,48 @@ class GrandsonLibrary:
                 return False
     
     def use_bundled_database(self):
-        """Use the bundled full database if available"""
-        try:
-            print(f"🔍 DIAGNOSTIC: Checking for bundled database at {self.bundled_database_path}")
-            
-            if self.bundled_database_path.exists():
-                print(f"✅ DIAGNOSTIC: Found bundled database ({self.bundled_database_path.stat().st_size:,} bytes)")
+        """Use the bundled full database if available - IMPROVED VERSION"""
+        print("🔍 DIAGNOSTIC: Looking for bundled database files...")
+        
+        # Multiple possible bundled database locations
+        bundled_db_paths = [
+            self.script_dir / "MyLibrary.db",
+            self.script_dir / "GrandsonLibrary_Full.db",
+            self.script_dir / "Data" / "MyLibrary.db",
+            self.bundled_database_path,  # Original path
+        ]
+        
+        for db_path in bundled_db_paths:
+            if db_path.exists():
+                print(f"📄 DIAGNOSTIC: Found bundled database: {db_path}")
+                print(f"📄 DIAGNOSTIC: Size: {db_path.stat().st_size:,} bytes")
                 
-                # Copy bundled database to target location
-                self.database_path.parent.mkdir(parents=True, exist_ok=True)
-                import shutil
-                shutil.copy2(self.bundled_database_path, self.database_path)
-                
-                print(f"✅ DIAGNOSTIC: Copied bundled database to {self.database_path}")
-                
-                # Verify the database
-                if self.verify_database():
-                    print("🎉 DIAGNOSTIC: Successfully using bundled full database!")
-                    return True
-                else:
-                    print("❌ DIAGNOSTIC: Bundled database failed verification")
-                    return False
-            else:
-                print("⚠️ DIAGNOSTIC: No bundled database found, trying downloads...")
-                return False
-                
-        except Exception as e:
-            print(f"❌ DIAGNOSTIC: Error using bundled database: {e}")
-            return False
+                try:
+                    # Ensure target directory exists
+                    self.database_path.parent.mkdir(parents=True, exist_ok=True)
+                    
+                    # Copy bundled database to target location
+                    import shutil
+                    shutil.copy2(db_path, self.database_path)
+                    
+                    # Quick verification
+                    conn = sqlite3.connect(self.database_path)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM books")
+                    book_count = cursor.fetchone()[0]
+                    conn.close()
+                    
+                    if book_count > 0:
+                        print(f"✅ DIAGNOSTIC: Bundled database copied and verified: {book_count} books")
+                        return True
+                    else:
+                        print(f"❌ DIAGNOSTIC: Bundled database has no books: {db_path}")
+                        
+                except Exception as e:
+                    print(f"❌ DIAGNOSTIC: Error with bundled database {db_path}: {e}")
+                    
+        print("❌ DIAGNOSTIC: No working bundled database found")
+        return False
 
     def download_database_from_public_url(self):
         """Try downloading from a public URL as fallback"""
