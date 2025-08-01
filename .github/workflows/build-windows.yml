@@ -29,7 +29,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller fastapi uvicorn[standard] requests aiofiles
         pip install google-auth google-auth-oauthlib google-auth-httplib2
-        pip install googleapiclient cryptography pydantic starlette psutil
+        pip install google-api-python-client cryptography pydantic starlette psutil
+        pip install jinja2 markupsafe itsdangerous click h11 anyio sniffio
+        pip install typing-extensions annotated-types
         
     - name: Build Windows executable
       run: |
