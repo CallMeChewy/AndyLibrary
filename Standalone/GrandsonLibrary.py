@@ -75,10 +75,15 @@ class GrandsonLibrary:
             if self.config_path.exists():
                 with open(self.config_path, 'r') as f:
                     config = json.load(f)
-                    self.google_drive_folder_id = config.get('folder_id')
-                    self.google_drive_folder_url = config.get('folder_url')
-                    self.grandpa_name = config.get('grandpa_name', 'Grandpa')
-                    print(f"✅ Loaded config for {self.grandpa_name}'s library")
+                    # TRUSTED WINDOWS MACHINE - Always use hardcoded trusted folder
+                    # Don't override with potentially outdated config values
+                    old_folder_id = config.get('folder_id')
+                    if old_folder_id and old_folder_id != self.google_drive_folder_id:
+                        print(f"🔄 UPDATING: Config had old folder ID {old_folder_id[:20]}...")
+                        print(f"🔄 USING: Trusted folder ID {self.google_drive_folder_id}")
+                    # Keep the trusted folder ID we set in __init__
+                    self.grandpa_name = config.get('grandpa_name', 'Granddaddy')
+                    print(f"✅ Config loaded for {self.grandpa_name}'s library (trusted folder enforced)")
                     return True
         except Exception as e:
             print(f"⚠️ Config load error: {e}")
@@ -327,10 +332,10 @@ class GrandsonLibrary:
     def download_database_from_public_url(self):
         """Try downloading from a public URL as fallback"""
         try:
-            # Public URLs that don't require authentication
+            # Public URLs that don't require authentication - TRUSTED FOLDER ACCESS
             public_urls = [
-                "https://drive.google.com/uc?export=download&id=1BpODcF8qf6VYZbxvQw8JbfHQ2n8r4X9m",
-                # Add more fallback URLs here if available
+                f"https://drive.google.com/uc?export=download&id={self.google_drive_folder_id}",
+                # Trusted Windows machine folder - no authentication needed
             ]
             
             for url in public_urls:
