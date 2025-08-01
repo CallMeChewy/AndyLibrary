@@ -1,105 +1,85 @@
 # File: grandson-library-build.yml
 # Path: /home/herb/Desktop/AndyLibrary/.github/workflows/grandson-library-build.yml
 # Standard: AIDEV-PascalCase-2.1
-# Created: 2025-07-30
-# Last Modified: 2025-08-01 05:20PM
+# Created: 2025-08-01
+# Last Modified: 2025-08-01 05:30PM
 
-name: Build Grandson's Library Windows EXE - UPDATED
+name: Build Grandson's Library Windows EXE
 
 on:
   push:
     paths:
       - 'Standalone/GrandsonLibrary.py'
-      - 'Standalone/grandson-library-windows.spec'
       - '.github/workflows/grandson-library-build.yml'
   workflow_dispatch:
-    inputs:
-      build_reason:
-        description: 'Reason for manual build'
-        required: false
-        default: 'Manual build for testing'
 
 jobs:
-  build-grandson-windows-exe:
-    name: 🎓 Build Grandson's Educational Library
+  build-windows-exe:
     runs-on: windows-latest
     
     steps:
-    - name: 📥 Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: 🐍 Set up Python 3.11
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
         
-    - name: 📦 Install build dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller fastapi uvicorn requests aiofiles
+        pip install fastapi uvicorn requests pyinstaller
         
-    - name: 📚 Setup database for grandson - FIXED PATHS
-      shell: cmd
+    - name: Locate and prepare database
       run: |
-        echo Checking for database files in multiple locations...
-        if exist "Standalone\MyLibrary.db" (
-          echo ✅ Database found: Standalone\MyLibrary.db
-          dir "Standalone\MyLibrary.db"
-        ) else if exist "Standalone\GrandsonLibrary_Full.db" (
-          echo ✅ Database found: Standalone\GrandsonLibrary_Full.db
-          copy "Standalone\GrandsonLibrary_Full.db" "Standalone\MyLibrary.db"
-          echo ✅ Database copied as MyLibrary.db
-        ) else if exist "Public\GrandsonLibrary_Full_20250731_1319.db" (
-          echo ✅ Database found: Public folder
-          copy "Public\GrandsonLibrary_Full_20250731_1319.db" "Standalone\MyLibrary.db"
-          echo ✅ Database copied from Public folder
-        ) else (
-          echo ❌ No database found - grandson will get demo library
-          echo Available files in Standalone:
-          dir "Standalone\"
-        )
-        
-    - name: 🔧 Build Windows EXE with PyInstaller  
-      shell: cmd
-      run: |
-        pyinstaller --onefile --console --name "GrandsonLibrary" --add-data "Standalone/MyLibrary.db;." --add-data "WebPages;WebPages" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "uvicorn.lifespan.on" --hidden-import "uvicorn.lifespan.off" --hidden-import "fastapi.routing" --hidden-import "fastapi.responses" --hidden-import "fastapi.staticfiles" --hidden-import "requests" --hidden-import "sqlite3" --hidden-import "threading" --hidden-import "webbrowser" Standalone/GrandsonLibrary.py
-        
-    - name: ✅ Verify build success
-      shell: powershell
-      run: |
-        if (Test-Path "dist/GrandsonLibrary.exe") {
-          $size = (Get-Item "dist/GrandsonLibrary.exe").Length / 1MB
-          Write-Host "🎉 BUILD SUCCESS! 🎉"
-          Write-Host "📄 File: GrandsonLibrary.exe"
-          Write-Host "📊 Size: $([math]::Round($size, 1))MB"
-          Write-Host "🖥️ Platform: Windows x64"
-          Write-Host "📚 Hard-coded for Granddaddy's Google Drive"
-          Write-Host ""
-          Write-Host "✅ Ready for grandson deployment!"
+        # Look for database files in multiple locations
+        if (Test-Path "Data\Databases\MyLibrary.db") {
+          Write-Host "✅ Database found: Data\Databases\MyLibrary.db"
+          Copy-Item "Data\Databases\MyLibrary.db" "Standalone\MyLibrary.db"
+        } elseif (Test-Path "Source\Data\Databases\MyLibrary.db") {
+          Write-Host "✅ Database found: Source\Data\Databases\MyLibrary.db"  
+          Copy-Item "Source\Data\Databases\MyLibrary.db" "Standalone\MyLibrary.db"
+        } elseif (Test-Path "Standalone\GrandsonLibrary_Full.db") {
+          Write-Host "✅ Database found: Standalone\GrandsonLibrary_Full.db"
+          Copy-Item "Standalone\GrandsonLibrary_Full.db" "Standalone\MyLibrary.db"
         } else {
-          Write-Host "❌ Build failed - EXE not found"
+          Write-Host "❌ No database file found!"
+          Get-ChildItem -Recurse -Name "*.db" | Write-Host
           exit 1
         }
         
-    - name: 📤 Upload Windows EXE artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: grandson-library-windows-exe
-        path: dist/GrandsonLibrary.exe
-        retention-days: 30
+        # Verify database has content
+        python -c "
+import sqlite3
+conn = sqlite3.connect('Standalone/MyLibrary.db')
+cursor = conn.cursor()
+cursor.execute('SELECT COUNT(*) FROM books')
+count = cursor.fetchone()[0]
+print(f'Database verified: {count} books')
+conn.close()
+assert count > 1000, f'Database too small: {count} books'
+"
         
-    - name: 📋 Create deployment instructions
+    - name: Build Windows executable
       run: |
-        echo "# Grandson's Library - Windows EXE Ready!" > GRANDSON-DEPLOYMENT-READY.md
-        echo "" >> GRANDSON-DEPLOYMENT-READY.md
-        echo "Built Successfully - File: GrandsonLibrary.exe" >> GRANDSON-DEPLOYMENT-READY.md
-        echo "Platform: Windows 64-bit" >> GRANDSON-DEPLOYMENT-READY.md
-        echo "Database: 1,200+ books included" >> GRANDSON-DEPLOYMENT-READY.md
-        echo "Setup: None required!" >> GRANDSON-DEPLOYMENT-READY.md
+        cd Standalone
+        python -m PyInstaller --onefile --windowed --add-data "MyLibrary.db;." --name "GrandsonLibrary" GrandsonLibrary.py
         
-    - name: 📤 Upload deployment instructions
-      uses: actions/upload-artifact@v4  
+    - name: Verify executable
+      run: |
+        if (Test-Path "Standalone\dist\GrandsonLibrary.exe") {
+          Write-Host "✅ Executable created: GrandsonLibrary.exe"
+          $size = (Get-Item "Standalone\dist\GrandsonLibrary.exe").Length
+          Write-Host "📊 Executable size: $([math]::Round($size/1MB, 2)) MB"
+        } else {
+          Write-Host "❌ Executable not found!"
+          exit 1
+        }
+        
+    - name: Upload Windows executable
+      uses: actions/upload-artifact@v3
       with:
-        name: grandson-deployment-instructions
-        path: GRANDSON-DEPLOYMENT-READY.md
+        name: GrandsonLibrary-Windows-EXE
+        path: Standalone/dist/GrandsonLibrary.exe
         retention-days: 30
