@@ -125,10 +125,19 @@ class ModernSocialAuthManager:
             if config_path.exists():
                 with open(config_path, 'r') as f:
                     content = f.read()
-                    # Replace environment variables
-                    for env_var in os.environ:
-                        if env_var.startswith(('GOOGLE_', 'GITHUB_', 'FACEBOOK_', 'OAUTH_')):
-                            content = content.replace(f"${{{env_var}}}", os.getenv(env_var, ''))
+                    # Replace environment variables with proper defaults
+                    env_replacements = {
+                        'GOOGLE_CLIENT_ID': os.getenv('GOOGLE_CLIENT_ID', 'dummy_google_client_id'),
+                        'GOOGLE_CLIENT_SECRET': os.getenv('GOOGLE_CLIENT_SECRET', 'dummy_google_client_secret'),
+                        'GITHUB_CLIENT_ID': os.getenv('GITHUB_CLIENT_ID', 'dummy_github_client_id'),
+                        'GITHUB_CLIENT_SECRET': os.getenv('GITHUB_CLIENT_SECRET', 'dummy_github_client_secret'),
+                        'FACEBOOK_APP_ID': os.getenv('FACEBOOK_APP_ID', 'dummy_facebook_app_id'),
+                        'FACEBOOK_APP_SECRET': os.getenv('FACEBOOK_APP_SECRET', 'dummy_facebook_app_secret'),
+                        'OAUTH_TOKEN_ENCRYPTION_KEY': os.getenv('OAUTH_TOKEN_ENCRYPTION_KEY', secrets.token_urlsafe(32))
+                    }
+                    
+                    for var_name, var_value in env_replacements.items():
+                        content = content.replace(f"${{{var_name}}}", var_value)
                     
                     self.SecurityConfig = json.loads(content)
             else:

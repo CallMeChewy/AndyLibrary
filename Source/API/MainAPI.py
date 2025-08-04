@@ -1766,13 +1766,8 @@ async def verify_user_email(token: str, request: Request):
         if not verification_result["success"]:
             raise HTTPException(status_code=400, detail=verification_result["error"])
         
-        # Return success page or redirect
-        return {
-            "success": True,
-            "message": verification_result["message"],
-            "user_email": verification_result["email"],
-            "access_level": "basic"
-        }
+        # Redirect to success page
+        return RedirectResponse(url="/verification-success.html", status_code=302)
         
     except HTTPException:
         raise
@@ -2747,7 +2742,7 @@ async def toggle_bookmark(
         raise HTTPException(status_code=500, detail=f"Bookmark toggle failed: {str(e)}")
 
 # Static file serving
-app.mount("/static", StaticFiles(directory="WebPages"), name="static")
+app.mount("/static", StaticFiles(directory="WebPages/static"), name="static")
 
 # PWA Support - Progressive Web App endpoints
 @app.get("/manifest.json")
@@ -2806,6 +2801,21 @@ async def serve_favicon():
 async def serve_setup_page():
     """Serve the AndyLibrary setup/installation page"""
     return FileResponse("WebPages/setup.html")
+
+@app.get("/simple-register.html")
+async def serve_simple_register_page():
+    """Serve the simple registration test page"""
+    return FileResponse("WebPages/simple-register.html")
+
+@app.get("/direct-register.html")
+async def serve_direct_register_page():
+    """Serve the direct registration test page (no service worker)"""
+    return FileResponse("WebPages/direct-register.html")
+
+@app.get("/verification-success.html")
+async def serve_verification_success_page():
+    """Serve the email verification success page"""
+    return FileResponse("WebPages/verification-success.html")
 
 # Error handlers
 @app.exception_handler(HTTPException)

@@ -334,6 +334,7 @@ config/
 secrets/
 
 # OAuth and Authentication - NEVER COMMIT
+GooglePagesDeployment/Config/google_token.json
 Config/google_credentials.json
 Config/google_token.json
 Config/email_config.json
@@ -370,3 +371,4 @@ __pycache__/
 # User Environment Directories
 UserEnvironments/
 user_data/
+GooglePagesDeployment/Config/google_token.json

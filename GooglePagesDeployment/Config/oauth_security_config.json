@@ -1,0 +1,122 @@
+# File: oauth_security_config.json
+# Path: /home/herb/Desktop/AndyLibrary/Config/oauth_security_config.json
+# Standard: AIDEV-PascalCase-2.1
+# Created: 2025-07-28
+# Last Modified: 2025-07-28 06:30AM
+
+{
+  "oauth_security": {
+    "version": "2025.1",
+    "last_updated": "2025-07-28",
+    "compliance_level": "production_ready",
+    
+    "encryption": {
+      "token_encryption_key": "${OAUTH_TOKEN_ENCRYPTION_KEY}",
+      "state_encryption_enabled": true,
+      "cookie_secure": true,
+      "cookie_httponly": true,
+      "cookie_samesite": "Lax"
+    },
+    
+    "token_management": {
+      "access_token_ttl": 3600,
+      "refresh_token_ttl": 2592000,
+      "token_rotation_enabled": true,
+      "automatic_refresh": true,
+      "revocation_check_interval": 300
+    },
+    
+    "security_headers": {
+      "csp_enabled": true,
+      "csp_policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com",
+      "hsts_enabled": true,
+      "hsts_max_age": 31536000,
+      "x_frame_options": "DENY",
+      "x_content_type_options": "nosniff"
+    },
+    
+    "rate_limiting": {
+      "oauth_attempts_per_minute": 10,
+      "oauth_attempts_per_hour": 50,
+      "token_refresh_per_minute": 30,
+      "failed_attempt_lockout": 900
+    }
+  },
+  
+  "providers": {
+    "google": {
+      "name": "Google",
+      "client_id": "${GOOGLE_CLIENT_ID}",
+      "client_secret": "${GOOGLE_CLIENT_SECRET}",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth/v2",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "userinfo_uri": "https://www.googleapis.com/oauth2/v3/userinfo",
+      "issuer": "https://accounts.google.com",
+      "scopes": ["openid", "email", "profile"],
+      "additional_params": {
+        "access_type": "offline",
+        "prompt": "consent",
+        "include_granted_scopes": "true"
+      },
+      "pkce_enabled": true,
+      "enabled": true
+    },
+    
+    "github": {
+      "name": "GitHub",
+      "client_id": "${GITHUB_CLIENT_ID}",
+      "client_secret": "${GITHUB_CLIENT_SECRET}",
+      "auth_uri": "https://github.com/login/oauth/authorize",
+      "token_uri": "https://github.com/login/oauth/access_token",
+      "userinfo_uri": "https://api.github.com/user",
+      "scopes": ["user:email", "read:user"],
+      "enabled": false
+    },
+    
+    "facebook": {
+      "name": "Facebook",
+      "client_id": "${FACEBOOK_APP_ID}",
+      "client_secret": "${FACEBOOK_APP_SECRET}",
+      "auth_uri": "https://www.facebook.com/v19.0/dialog/oauth",
+      "token_uri": "https://graph.facebook.com/v19.0/oauth/access_token",
+      "userinfo_uri": "https://graph.facebook.com/me",
+      "scopes": ["email", "public_profile"],
+      "additional_params": {
+        "fields": "id,name,email,picture"
+      },
+      "enabled": false
+    }
+  },
+  
+  "development": {
+    "allowed_redirect_uris": [
+      "http://127.0.0.1:8080/api/auth/oauth/callback",
+      "http://localhost:8080/api/auth/oauth/callback",
+      "http://127.0.0.1:8080",
+      "http://localhost:8080"
+    ],
+    "debug_logging": true,
+    "skip_https_check": true
+  },
+  
+  "production": {
+    "allowed_redirect_uris": [
+      "https://bowersworld.com/api/auth/oauth/callback",
+      "https://www.bowersworld.com/api/auth/oauth/callback",
+      "https://library.bowersworld.com/api/auth/oauth/callback"
+    ],
+    "debug_logging": false,
+    "skip_https_check": false,
+    "require_verified_domain": true
+  },
+  
+  "compliance": {
+    "gdpr_compliant": true,
+    "ccpa_compliant": true,
+    "coppa_considerations": true,
+    "data_retention_days": 90,
+    "consent_required": true,
+    "privacy_policy_url": "https://bowersworld.com/privacy",
+    "terms_of_service_url": "https://bowersworld.com/terms"
+  }
+}
